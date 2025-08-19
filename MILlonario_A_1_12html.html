@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Ascenso del Almacenamiento v1.2</title>
+    
+    <!-- 
+        Manifiesto del Arquitecto Digital v3.3 (Versión Definitiva)
+        - RECONSTRUCCIÓN COMPLETA del flujo de ejecución del script para eliminar el fallo de precarga.
+        - La secuencia de inicialización ahora es robusta y garantiza la correcta carga de componentes.
+        - Se mantienen todas las características de la v1.1.
+    -->
+    <style>
+        /* Estilos idénticos a la versión anterior para mantener la consistencia visual */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Orbitron:wght@500;700&display=swap');
+        :root { --color-fondo: #0a0a1a; --color-texto-principal: #d0d0e0; --color-primario: #00ffff; --color-secundario: #ffaa00; --color-borde: #3a3a5a; --color-contenedor: #111122; --color-correcto: #00ff7f; --color-incorrecto: #ff1744; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; overflow: hidden; background-color: var(--color-fondo); color: var(--color-texto-principal); font-family: 'Roboto Mono', monospace; }
+        .screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; opacity: 0; transition: opacity 0.8s ease-in-out; background-color: var(--color-fondo); }
+        .screen.active { display: flex; opacity: 1; z-index: 1; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(10, 10, 26, 0.95); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.5s; }
+        .overlay.active { opacity: 1; pointer-events: all; }
+        #precarga-screen .titulo { font-family: 'Orbitron', sans-serif; font-size: 2.5rem; color: var(--color-primario); letter-spacing: 8px; text-shadow: 0 0 10px var(--color-primario); margin-bottom: 2rem; }
+        .buffer-carga { display: flex; gap: 5px; margin: 1rem 0; }
+        .buffer-carga-bloque { width: 30px; height: 15px; background-color: var(--color-borde); transition: background-color 0.2s; }
+        #texto-precarga { margin-top: 1rem; font-size: 0.9rem; height: 20px; }
+        .registro-contenedor { width: 100%; max-width: 800px; text-align: center; }
+        .registro-contenedor h2 { color: var(--color-secundario); margin-bottom: 2rem; font-family: 'Orbitron', sans-serif; }
+        .prompt-entrada { display: flex; justify-content: center; align-items: center; font-size: 1.5rem; margin-bottom: 2rem; background: rgba(0,0,0,0.2); padding: 1rem; border: 1px solid var(--color-borde); }
+        #jugador-input { min-height: 30px; text-transform: uppercase; }
+        .cursor { width: 10px; height: 1.5rem; background: var(--color-texto-principal); animation: parpadeo 1s step-end infinite; }
+        @keyframes parpadeo { from, to { background-color: transparent; } 50% { background-color: var(--color-texto-principal); } }
+        .matriz-entrada { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; width: 100%; }
+        .matriz-entrada button { font-family: 'Roboto Mono', monospace; font-size: 1.2rem; padding: 15px 5px; background-color: var(--color-contenedor); color: var(--color-texto-principal); border: 1px solid var(--color-borde); cursor: pointer; transition: all 0.2s; }
+        .matriz-entrada button:hover:not(:disabled) { background-color: var(--color-primario); color: var(--color-fondo); border-color: var(--color-primario); }
+        .matriz-entrada button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .delete-key { grid-column: span 4; }
+        .accept-key { grid-column: span 6; background-color: var(--color-secundario); color: var(--color-fondo); font-weight: bold; }
+        #menu-screen h1 { font-family: 'Orbitron', sans-serif; font-size: 3rem; color: var(--color-secundario); text-shadow: 0 0 15px var(--color-secundario); margin-bottom: 1rem; }
+        #nodo-activo-display { margin-bottom: 2rem; color: var(--color-primario); }
+        .menu-opciones button { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; display: block; width: 450px; padding: 1rem; margin: 0.8rem 0; background: transparent; color: var(--color-texto-principal); border: 2px solid var(--color-borde); cursor: pointer; transition: all 0.3s; }
+        .menu-opciones button:hover { color: var(--color-secundario); border-color: var(--color-secundario); box-shadow: 0 0 15px var(--color-secundario); }
+        .semilla-contenedor { margin-top: 1rem; display: flex; align-items: center; justify-content: center; width: 450px; }
+        .semilla-contenedor input { background: var(--color-contenedor); border: 1px solid var(--color-borde); color: var(--color-texto-principal); padding: 0.5rem; font-family: 'Roboto Mono', monospace; text-align: center; flex-grow: 1; }
+        .semilla-contenedor button { width: 150px; font-size: 0.9rem !important; margin-left: 10px; padding: 0.5rem !important; }
+        #juego-screen { display: none; grid-template-columns: 250px 1fr 250px; grid-template-rows: auto 1fr; width: 100%; height: 100%; padding: 1rem; gap: 1rem; }
+        #juego-screen.active { display: grid; }
+        #juego-screen.glitch { animation: glitch-anim 0.5s infinite; }
+        .juego-columna { display: flex; flex-direction: column; padding: 1rem; background: rgba(17, 17, 34, 0.5); border: 1px solid var(--color-borde); }
+        #arbol-capacidad { list-style: none; text-align: center; }
+        #arbol-capacidad li { padding: 8px; margin: 4px 0; border: 1px solid transparent; transition: all 0.3s; }
+        #arbol-capacidad .nivel-actual { background: var(--color-secundario); color: var(--color-fondo); font-weight: bold; }
+        #arbol-capacidad .nivel-seguro { color: var(--color-primario); font-weight: bold; }
+        #arbol-capacidad .nivel-superado { opacity: 0.5; }
+        .columna-central { grid-column: 2 / 3; grid-row: 1 / 3; }
+        #pregunta-contenedor { min-height: 150px; padding: 2rem; margin-bottom: 2rem; font-size: 1.5rem; text-align: center; display: flex; justify-content: center; align-items: center; border: 1px solid var(--color-borde); }
+        #respuestas-contenedor { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1rem; height: 400px; }
+        .respuesta-btn { font-family: 'Roboto Mono', monospace; font-size: 1.2rem; background: var(--color-contenedor); border: 1px solid var(--color-borde); color: var(--color-texto-principal); cursor: pointer; transition: all 0.3s; display: flex; justify-content: flex-start; align-items: center; padding: 1rem; }
+        .respuesta-btn:hover { border-color: var(--color-secundario); }
+        .respuesta-btn.seleccionada { background-color: var(--color-secundario); color: var(--color-fondo); }
+        .respuesta-btn.correcta { background-color: var(--color-correcto); color: var(--color-fondo); animation: pulso-correcto 1s 2; }
+        .respuesta-btn.incorrecta { background-color: var(--color-incorrecto); color: var(--color-fondo); }
+        .respuesta-btn.oculta { opacity: 0; pointer-events: none; }
+        .respuesta-letra { color: var(--color-secundario); margin-right: 1rem; }
+        @keyframes pulso-correcto { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes glitch-anim { 0% { transform: translate(0); } 20% { transform: translate(-3px, 3px); } 40% { transform: translate(-3px, -3px); } 60% { transform: translate(3px, 3px); } 80% { transform: translate(3px, -3px); } 100% { transform: translate(0); } }
+        .lore-contenedor { max-width: 800px; text-align: center; border: 2px solid var(--color-secundario); padding: 3rem; background: var(--color-contenedor); }
+        .lore-contenedor h2 { font-family: 'Orbitron'; color: var(--color-secundario); margin-bottom: 1.5rem; }
+        .lore-contenedor p { text-align: justify; line-height: 1.8; margin-bottom: 2rem; }
+        .lore-contenedor button { font-family: 'Orbitron'; font-size: 1rem; padding: 0.8rem 1.5rem; background: transparent; color: var(--color-texto-principal); border: 1px solid var(--color-borde); cursor: pointer; }
+        .fragmento-conocimiento { max-width: 600px; text-align: center; padding: 2rem; background: var(--color-contenedor); border: 1px solid var(--color-primario); }
+        .fragmento-conocimiento h3 { color: var(--color-primario); margin-bottom: 1rem; }
+        #salon-screen { justify-content: flex-start; padding-top: 5vh; }
+        #salon-screen h2 { font-family: 'Orbitron'; color: var(--color-secundario); margin-bottom: 2rem; }
+        .salon-contenido { display: flex; gap: 2rem; width: 100%; max-width: 1200px; justify-content: center; }
+        #tabla-puntuaciones { width: 70%; border-collapse: collapse; }
+        #tabla-puntuaciones th, #tabla-puntuaciones td { padding: 0.8rem; text-align: left; border-bottom: 1px solid var(--color-borde); }
+        #tabla-puntuaciones th { color: var(--color-primario); }
+        #logros-contenedor { width: 30%; }
+        #logros-contenedor h3 { color: var(--color-primario); margin-bottom: 1rem; text-align: center; }
+        #logros-lista { list-style: none; }
+        #logros-lista li { background: var(--color-contenedor); margin-bottom: 0.5rem; padding: 0.5rem; border-left: 3px solid var(--color-borde); }
+        #logros-lista li.desbloqueado { border-left-color: var(--color-secundario); color: var(--color-secundario); }
+        .salon-botones { margin-top: 2rem; }
+        .salon-botones button { font-family: 'Orbitron'; font-size: 1.1rem; padding: 0.8rem 1.5rem; margin: 0 1rem; background-color: var(--color-contenedor); color: var(--color-texto-principal); border: 1px solid var(--color-borde); cursor: pointer; transition: all 0.3s ease; }
+        .salon-botones button:hover { border-color: var(--color-secundario); color: var(--color-secundario); }
+        #semilla-final-display { margin-top: 1.5rem; color: var(--color-primario); font-size: 0.9rem; }
+        #fullscreen-enforcer-overlay h2 { color: var(--color-secundario); margin-bottom: 1.5rem; }
+        #fullscreen-enforcer-overlay p { margin-bottom: 2rem; }
+        #fullscreen-enforcer-overlay button { font-family: 'Orbitron'; font-size: 1.2rem; padding: 1rem 2rem; background: var(--color-secundario); color: var(--color-fondo); border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- Contenedores de Pantallas -->
+    <div id="precarga-screen" class="screen active"></div>
+    <div id="registro-screen" class="screen"></div>
+    <div id="menu-screen" class="screen"></div>
+    <div id="juego-screen" class="screen"></div>
+    <div id="lore-interludio-screen" class="screen"></div>
+    <div id="salon-screen" class="screen"></div>
+
+    <!-- Superposiciones -->
+    <div id="fragmento-overlay" class="overlay"></div>
+    <div id="fullscreen-enforcer-overlay" class="overlay"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // === MÓDULO DE LÓGICA PRINCIPAL v1.2 ===
+
+        // --- I. DEFINICIÓN DE CONSTANTES Y DATOS BASE ---
+        const bancoDePreguntas = [ { categoria: "Historia", pregunta: "¿Qué dispositivo histórico de almacenamiento utilizaba agujeros para representar datos?", opciones: ["Cinta magnética", "Disquete", "CD-ROM", "Tarjeta perforada"], respuesta: 3, conocimiento: "Las tarjetas perforadas fueron usadas en telares por Joseph Marie Jacquard en 1804." }, { categoria: "Historia", pregunta: "¿Cuál de estas compañías introdujo el primer disco duro comercial, el RAMAC 305?", opciones: ["Intel", "IBM", "Microsoft", "Apple"], respuesta: 1, conocimiento: "El IBM RAMAC de 1956 pesaba más de una tonelada y almacenaba unos 5 MB." }, { categoria: "Conversion", pregunta: "Un Byte está compuesto por ¿cuántos bits?", opciones: ["4", "16", "8", "2"], respuesta: 2, conocimiento: "El término 'byte' fue acuñado por Werner Buchholz en 1956." }, { categoria: "Conversion", pregunta: "2048 Kilobytes (KB) equivalen a...", opciones: ["2 Gigabytes (GB)", "20 Megabytes (MB)", "2 Megabytes (MB)", "2048 Bytes"], respuesta: 2, conocimiento: "En sistema binario (KiB), 1024 KiB son 1 MiB. En decimal (KB), 1000 KB son 1 MB." }, { categoria: "Hardware", pregunta: "¿Qué tipo de unidad de almacenamiento NO tiene partes móviles y usa memoria flash?", opciones: ["HDD (Hard Disk Drive)", "SSD (Solid State Drive)", "Unidad de cinta", "Lector de CD"], respuesta: 1, conocimiento: "La ausencia de partes móviles hace a los SSD mucho más rápidos y resistentes a los golpes que los HDD." }, { categoria: "Hardware", pregunta: "La tecnología de almacenamiento óptico incluye...", opciones: ["Disquetes", "Memorias USB", "CD, DVD y Blu-ray", "Discos Duros"], respuesta: 2, conocimiento: "Los discos ópticos usan un láser para leer y escribir datos en una superficie reflectante." }, { categoria: "Conceptos", pregunta: "¿Qué significa el acrónimo 'KB'?", opciones: ["KiloBit", "KiloByte", "KiloBase", "KiloBaud"], respuesta: 1, conocimiento: "Un KiloBit (Kb) es 1/8 de un KiloByte (KB). Las velocidades de internet se miden en bits." }, { categoria: "Conceptos", pregunta: "El término 'Almacenamiento en la Nube' se refiere a:", opciones: ["Guardar datos en satélites", "Guardar datos en servidores remotos accesibles por internet", "Un nuevo tipo de disco SSD", "Almacenamiento que usa vapor de agua"], respuesta: 1, conocimiento: "El concepto fue popularizado por Amazon Web Services (AWS) a mediados de la década de 2000." }, { categoria: "Conceptos", pregunta: "¿Qué es la 'latencia' en el almacenamiento de datos?", opciones: ["La capacidad total del disco", "La velocidad de transferencia", "El tiempo de retardo para acceder a un dato", "La temperatura del disco"], respuesta: 2, conocimiento: "Los SSD tienen una latencia muchísimo más baja que los HDD, lo que acelera el arranque del sistema y la carga de programas." }, { categoria: "Conversion", pregunta: "Aproximadamente, ¿cuántos Gigabytes (GB) son 0.5 Terabytes (TB)?", opciones: ["5000 GB", "50 GB", "512 GB", "500 GB"], respuesta: 3, conocimiento: "El prefijo 'Tera' representa 10^12, mientras que 'Giga' representa 10^9." }, { categoria: "Historia", pregunta: "¿Qué dispositivo, popular en los 80 y 90, tenía una capacidad típica de 1.44 MB?", opciones: ["Zip Drive", "CD-ROM", "Disquete de 3.5 pulgadas", "Memoria USB"], respuesta: 2, conocimiento: "El sonido del motor de un lector de disquetes es un recuerdo icónico para muchos entusiastas de la computación." }, { categoria: "Hardware", pregunta: "¿Qué significa RAID 0 en un sistema de almacenamiento?", opciones: ["Duplicación de datos (Mirroring)", "División de datos (Striping) para mayor velocidad", "Paridad para redundancia", "Un solo disco"], respuesta: 1, conocimiento: "RAID 0 mejora el rendimiento pero no ofrece redundancia. Si un disco falla, se pierden todos los datos." }, { categoria: "Conceptos", pregunta: "La unidad de medida inmediatamente superior al Petabyte (PB) es el...", opciones: ["Zettabyte (ZB)", "Exabyte (EB)", "Yottabyte (YB)", "Terabyte (TB)"], respuesta: 1, conocimiento: "Se estima que el tráfico global de internet superó un Exabyte por día en 2016." }, { categoria: "Conversion", pregunta: "¿Cuántos bits se necesitan para representar un carácter en el código ASCII estándar?", opciones: ["4", "8", "16", "32"], respuesta: 1, conocimiento: "El ASCII extendido usa 8 bits, permitiendo 256 caracteres diferentes, incluyendo símbolos y letras acentuadas." }, { categoria: "Historia", pregunta: "El concepto de 'hipertexto', fundamental para la web, fue acuñado por:", opciones: ["Tim Berners-Lee", "Bill Gates", "Ted Nelson", "Steve Jobs"], respuesta: 2, conocimiento: "Ted Nelson lo describió en su 'Proyecto Xanadu' en 1960, décadas antes de que la tecnología lo hiciera práctico." } ];
+        const niveles = ["1 BIT", "1 BYTE", "1 KB", "100 KB", "1 MEGABYTE", "10 MB", "100 MB", "1 GB", "100 GB", "1 TERABYTE", "10 TB", "100 TB", "1 PETABYTE", "100 PB", "LA NUBE GLOBAL"];
+        const loreInterludios = { 4: { titulo: "Archivo Desbloqueado: El Nacimiento del Megabyte", texto: "En 1956, el IBM 305 RAMAC introdujo el primer disco duro. Era del tamaño de dos refrigeradores, pesaba una tonelada y almacenaba 5 millones de caracteres (unos 5 MB). El acceso a cualquier dato tardaba menos de un segundo, una velocidad revolucionaria. Con él, la era del acceso aleatorio a grandes volúmenes de datos había comenzado, sentando las bases de todo lo que vendría después." }, 9: { titulo: "Archivo Desbloqueado: El Salto al Terabyte", texto: "Hitachi lanzó el primer disco duro de 1 Terabyte (1000 GB) en 2007, un hito que parecía ciencia ficción solo una década antes. Este salto cuántico en capacidad hizo posible la alta definición personal, las grandes librerías de juegos y el almacenamiento masivo de fotos y videos a nivel de consumidor. El 'Big Data' personal se había convertido en una realidad." } };
+        
+        // --- II. DECLARACIÓN DEL ESTADO DEL JUEGO ---
+        let estadoJuego = {};
+
+        // --- III. DEFINICIÓN DE TODAS LAS FUNCIONES DE LA APLICACIÓN ---
+
+        function resetEstadoJuego() { /* ... Lógica sin cambios ... */ }
+        function mulberry32(a) { /* ... Lógica sin cambios ... */ }
+        
+        // Funciones de Pantalla Completa
+        function entrarEnPantallaCompleta() { /* ... Lógica sin cambios ... */ }
+        function manejarCambioDePantallaCompleta() { /* ... Lógica sin cambios ... */ }
+        
+        // Funciones de Navegación y UI
+        function mostrarPantalla(id) { /* ... Lógica sin cambios ... */ }
+        function rellenarHTML() { /* ... Lógica sin cambios ... */ }
+        function iniciarPrecarga() { /* ... Lógica sin cambios ... */ }
+        function generarTeclado() { /* ... Lógica sin cambios ... */ }
+
+        // Funciones de Lógica de Juego
+        function generarRondaDePreguntas(seed) { /* ... Lógica sin cambios ... */ }
+        function iniciarJuego(seed = null) { /* ... Lógica sin cambios ... */ }
+        function iniciarJuegoConSemilla() { /* ... Lógica sin cambios ... */ }
+        function cargarPregunta() { /* ... Lógica sin cambios ... */ }
+        function seleccionarRespuesta(btn, index) { /* ... Lógica sin cambios ... */ }
+        function verificarRespuesta(selectedIndex) { /* ... Lógica sin cambios ... */ }
+        function continuarJuegoDesdeLore() { /* ... Lógica sin cambios ... */ }
+        function finalizarJuego(victoria) { /* ... Lógica sin cambios ... */ }
+
+        // Funciones de Comodines
+        function usarComodin5050() { /* ... Lógica sin cambios ... */ }
+        function usarComodinSysAdmin() { alert("Funcionalidad en desarrollo."); }
+        function usarComodinRed() { alert("Funcionalidad en desarrollo."); }
+
+        // Funciones de Puntuación y Logros
+        function verificarLogros() { /* ... Lógica sin cambios ... */ }
+        function guardarPuntuacion(nombre, capacidad, valor) { /* ... Lógica sin cambios ... */ }
+        function actualizarTablaPuntuaciones() { /* ... Lógica sin cambios ... */ }
+        function actualizarLogrosDisplay() { /* ... Lógica sin cambios ... */ }
+        function actualizarArbol() { /* ... Lógica sin cambios ... */ }
+        function reiniciarYJugar() { /* ... Lógica sin cambios ... */ }
+
+        // --- IV. IMPLEMENTACIÓN DETALLADA DE LAS FUNCIONES ---
+
+        // (Aquí pegamos el cuerpo de TODAS las funciones. El orden de definición ya no importa tanto,
+        // pero por claridad, las mantenemos agrupadas)
+
+        // Reset
+        resetEstadoJuego = function() {
+            estadoJuego = {
+                nombreJugador: estadoJuego.nombreJugador || "", preguntaActualIdx: 0,
+                comodines: { '5050': true, 'sysadmin': true, 'red': true },
+                puntuaciones: JSON.parse(localStorage.getItem('puntuacionesAscenso')) || [],
+                logros: JSON.parse(localStorage.getItem('logrosAscenso')) || { purista: { desbloqueado: false, texto: "'Purista': Alcanza 1TB sin comodines." }, calculadora: { desbloqueado: false, texto: "'Calculadora Humana': Acierta 3 preguntas de conversión." }, historiador: { desbloqueado: false, texto: "'Historiador Digital': Acierta 3 preguntas de historia." }, perfecto: { desbloqueado: false, texto: "'Ascenso Perfecto': Completa el juego." } },
+                preguntasRonda: [], seed: 0, aciertosConversion: 0, aciertosHistoria: 0,
+                comodinesUsados: false, enPartida: false
+            };
+        };
+        
+        // Aleatoriedad
+        mulberry32 = function(a) { return function() { var t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } };
+        
+        // Pantalla Completa
+        entrarEnPantallaCompleta = function() {
+            const el = document.documentElement;
+            if (el.requestFullscreen) el.requestFullscreen();
+            else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            else if (el.msRequestFullscreen) el.msRequestFullscreen();
+        };
+        manejarCambioDePantallaCompleta = function() {
+            const enforcer = document.getElementById('fullscreen-enforcer-overlay');
+            if (!document.fullscreenElement && estadoJuego.enPartida) enforcer.classList.add('active');
+            else enforcer.classList.remove('active');
+        };
+        
+        // UI y Navegación
+        mostrarPantalla = function(id) {
+            document.querySelectorAll('.screen').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if (id === 'salon-screen') {
+                actualizarTablaPuntuaciones();
+                actualizarLogrosDisplay();
+            }
+        };
+        rellenarHTML = function() {
+            document.getElementById('precarga-screen').innerHTML = `<h1 class="titulo">ENSAMBLANDO</h1><div class="buffer-carga" id="buffer-carga-contenedor"></div><p id="texto-precarga"></p>`;
+            document.getElementById('registro-screen').innerHTML = `<div class="registro-contenedor"><h2>SISTEMA DE CONOCIMIENTO DE ALMACENAMIENTO v1.2</h2><div class="prompt-entrada"><span>&gt; Ingrese identificador de Nodo:&nbsp;</span><span id="jugador-input"></span><div class="cursor"></div></div><div class="matriz-entrada" id="teclado-virtual"></div></div>`;
+            document.getElementById('menu-screen').innerHTML = `<h1>EL ASCENSO DEL ALMACENAMIENTO</h1><p id="nodo-activo-display"></p><div class="menu-opciones"><button id="iniciar-juego-btn">INICIAR ASCENSO</button><div class="semilla-contenedor"><input type="text" id="semilla-input" placeholder="Opcional: Ingrese Semilla"><button id="iniciar-semilla-btn">USAR SEMILLA</button></div><button id="mostrar-salon-btn">SALÓN DE ARQUITECTOS</button></div>`;
+            document.getElementById('juego-screen').innerHTML = `<div class="juego-columna"><h3 class="arsenal-titulo">ÁRBOL DE CAPACIDAD</h3><ul id="arbol-capacidad"></ul></div><div class="juego-columna columna-central"><div id="pregunta-contenedor"></div><div id="respuestas-contenedor"></div></div><div class="juego-columna"><h3 class="arsenal-titulo">ARSENAL</h3><button class="comodin-btn" id="comodin-5050">Eliminación Binaria [1/0]</button><button class="comodin-btn" id="comodin-sysadmin">Consulta al SysAdmin [👤]</button><button class="comodin-btn" id="comodin-red">Encuesta a la Red [🌐]</button></div>`;
+            document.getElementById('lore-interludio-screen').innerHTML = `<div class="lore-contenedor"><h2 id="lore-titulo"></h2><p id="lore-texto"></p><button id="continuar-lore-btn">CONTINUAR ASCENSO</button></div>`;
+            document.getElementById('salon-screen').innerHTML = `<h2>SALÓN DE LOS ARQUITECTOS</h2><div class="salon-contenido"><table id="tabla-puntuaciones"><thead><tr><th>RANGO</th><th>NODO</th><th>CAPACIDAD</th><th>FECHA</th></tr></thead><tbody></tbody></table><div id="logros-contenedor"><h3>GALARDONES</h3><ul id="logros-lista"></ul></div></div><div id="semilla-final-display"></div><div class="salon-botones"><button id="reiniciar-btn">NUEVO NODO</button><button id="volver-menu-btn">VOLVER A LA CONSOLA</button></div>`;
+            document.getElementById('fragmento-overlay').innerHTML = `<div class="fragmento-conocimiento"><h3>Fragmento de Conocimiento</h3><p id="fragmento-texto"></p></div>`;
+            document.getElementById('fullscreen-enforcer-overlay').innerHTML = `<h2>INMERSIÓN INTERRUMPIDA</h2><p>La experiencia ha sido diseñada para ser contemplada en toda su magnitud.</p><button id="reactivar-fullscreen-btn">REACTIVAR INMERSIÓN</button>`;
+        };
+        iniciarPrecarga = function() {
+            const contenedorBuffer = document.getElementById('buffer-carga-contenedor');
+            const textoPrecarga = document.getElementById('texto-precarga');
+            const mensajes = ["> Inicializando bancos de memoria...", "> Compilando preguntas...", "> Verificando integridad...", "> Conectando a la Nube...", "> Ensamblaje completado."];
+            for(let i = 0; i < 16; i++) {
+                const bloque = document.createElement('div'); bloque.classList.add('buffer-carga-bloque');
+                contenedorBuffer.appendChild(bloque);
+            }
+            const bloques = document.querySelectorAll('.buffer-carga-bloque');
+            let bloqueActual = 0, msgActual = 0;
+            textoPrecarga.textContent = mensajes[msgActual];
+            const intervalo = setInterval(() => {
+                if(bloqueActual < bloques.length) {
+                    bloques[bloqueActual].style.backgroundColor = 'var(--color-primario)'; bloqueActual++;
+                    if (bloqueActual % 4 === 0 && msgActual < mensajes.length - 1) { msgActual++; textoPrecarga.textContent = mensajes[msgActual]; }
+                } else {
+                    clearInterval(intervalo);
+                    setTimeout(() => mostrarPantalla('registro-screen'), 500);
+                }
+            }, 150);
+        };
+        generarTeclado = function() {
+            const contenedor = document.getElementById('teclado-virtual'); const inputJugador = document.getElementById('jugador-input');
+            const layout = "QWERTYUIOPASDFGHJKLZXCVBNM";
+            const autenticarBtn = document.createElement('button'); autenticarBtn.textContent = "AUTENTICAR"; autenticarBtn.className = 'accept-key'; autenticarBtn.disabled = true;
+            const updateAutenticarBtn = () => { autenticarBtn.disabled = inputJugador.textContent.length === 0; };
+            layout.split('').forEach(key => {
+                const btn = document.createElement('button'); btn.textContent = key;
+                btn.onclick = () => { if(inputJugador.textContent.length < 10) inputJugador.textContent += key; updateAutenticarBtn(); };
+                contenedor.appendChild(btn);
+            });
+            const borrar = document.createElement('button'); borrar.textContent = "BORRAR"; borrar.className = "delete-key";
+            borrar.onclick = () => { inputJugador.textContent = inputJugador.textContent.slice(0, -1); updateAutenticarBtn(); };
+            autenticarBtn.onclick = () => {
+                estadoJuego.nombreJugador = inputJugador.textContent;
+                document.getElementById('nodo-activo-display').textContent = `> NODO ACTIVO: ${estadoJuego.nombreJugador}`;
+                entrarEnPantallaCompleta(); mostrarPantalla('menu-screen');
+            };
+            contenedor.appendChild(borrar); contenedor.appendChild(autenticarBtn);
+        };
+
+        // Lógica de Juego
+        generarRondaDePreguntas = function(seed) { /* ... como antes ... */ const rng = mulberry32(seed); const categorias = { "Historia": [], "Conversion": [], "Hardware": [], "Conceptos": [] }; bancoDePreguntas.forEach(p => categorias[p.categoria].push(p)); for (const cat in categorias) { for (let i = categorias[cat].length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [categorias[cat][i], categorias[cat][j]] = [categorias[cat][j], categorias[cat][i]]; } } const ronda = []; for (let i = 0; i < 15; i++) { const catOrden = ["Historia", "Conversion", "Hardware", "Conceptos"]; const catSeleccionada = catOrden[i % 4]; if (categorias[catSeleccionada].length > 0) ronda.push(categorias[catSeleccionada].pop()); else { for (const cat in categorias) { if (categorias[cat].length > 0) { ronda.push(categorias[cat].pop()); break; } } } } return ronda; };
+        iniciarJuego = function(seed = null) { resetEstadoJuego(); estadoJuego.enPartida = true; estadoJuego.seed = seed === null ? Math.floor(Math.random() * 1000000) : seed; estadoJuego.preguntasRonda = generarRondaDePreguntas(estadoJuego.seed); document.querySelectorAll('.comodin-btn').forEach(btn => btn.disabled = false); mostrarPantalla('juego-screen'); cargarPregunta(); };
+        iniciarJuegoConSemilla = function() { const s = parseInt(document.getElementById('semilla-input').value); if(!isNaN(s)) iniciarJuego(s); else alert("Semilla inválida."); };
+        cargarPregunta = function() { /* ... como antes ... */ };
+        seleccionarRespuesta = function(btn, index) { /* ... como antes ... */ };
+        verificarRespuesta = function(selectedIndex) { /* ... como antes ... */ };
+        continuarJuegoDesdeLore = function() { if (estadoJuego.preguntaActualIdx >= estadoJuego.preguntasRonda.length) finalizarJuego(true); else { mostrarPantalla('juego-screen'); cargarPregunta(); } };
+        finalizarJuego = function(victoria) { /* ... como antes ... */ };
+        usarComodin5050 = function() { if (!estadoJuego.comodines['5050']) return; estadoJuego.comodines['5050'] = false; estadoJuego.comodinesUsados = true; document.getElementById('comodin-5050').disabled = true; const preguntaData = estadoJuego.preguntasRonda[estadoJuego.preguntaActualIdx]; const botones = document.querySelectorAll('.respuesta-btn'); let ocultados = 0, i = 0; while (ocultados < 2 && i < botones.length) { if (i !== preguntaData.respuesta) { botones[i].classList.add('oculta'); ocultados++; } i++; } };
+        
+        // ... (resto de implementaciones, que son idénticas a la v1.1) ...
+        verificarLogros = function() { if (estadoJuego.preguntaActualIdx >= 9 && !estadoJuego.comodinesUsados) estadoJuego.logros.purista.desbloqueado = true; if (estadoJuego.aciertosConversion >= 3) estadoJuego.logros.calculadora.desbloqueado = true; if (estadoJuego.aciertosHistoria >= 3) estadoJuego.logros.historiador.desbloqueado = true; };
+        finalizarJuego = function(victoria) { estadoJuego.enPartida = false; let nivelAlcanzadoIdx = 0; if (victoria) { nivelAlcanzadoIdx = 14; estadoJuego.logros.perfecto.desbloqueado = true; } else { if (estadoJuego.preguntaActualIdx >= 10) nivelAlcanzadoIdx = 9; else if (estadoJuego.preguntaActualIdx >= 5) nivelAlcanzadoIdx = 4; else nivelAlcanzadoIdx = -1; } localStorage.setItem('logrosAscenso', JSON.stringify(estadoJuego.logros)); const capacidad = nivelAlcanzadoIdx > -1 ? niveles[nivelAlcanzadoIdx] : "Ninguna"; guardarPuntuacion(estadoJuego.nombreJugador, capacidad, nivelAlcanzadoIdx + 1); document.getElementById('semilla-final-display').textContent = `Código de Semilla de esta partida: ${estadoJuego.seed}`; mostrarPantalla('salon-screen'); };
+        guardarPuntuacion = function(nombre, capacidad, valor) { const fecha = new Date().toLocaleDateString(); const scores = estadoJuego.puntuaciones; scores.push({ nombre, capacidad, fecha, valor }); scores.sort((a, b) => b.valor - a.valor); estadoJuego.puntuaciones = scores.slice(0, 10); localStorage.setItem('puntuacionesAscenso', JSON.stringify(estadoJuego.puntuaciones)); };
+        actualizarTablaPuntuaciones = function() { const tbody = document.querySelector('#tabla-puntuaciones tbody'); tbody.innerHTML = ''; estadoJuego.puntuaciones.forEach((score, index) => { const row = tbody.insertRow(); row.innerHTML = `<td>${index + 1}</td><td>${score.nombre}</td><td>${score.capacidad}</td><td>${score.fecha}</td>`; }); };
+        actualizarLogrosDisplay = function() { const lista = document.getElementById('logros-lista'); lista.innerHTML = ''; for (const key in estadoJuego.logros) { const logro = estadoJuego.logros[key]; const li = document.createElement('li'); li.textContent = logro.texto; if (logro.desbloqueado) li.classList.add('desbloqueado'); lista.appendChild(li); } };
+        actualizarArbol = function() { const arbolCapacidadEl = document.getElementById('arbol-capacidad'); arbolCapacidadEl.innerHTML = ''; [...niveles].reverse().forEach((nivel, index) => { const li = document.createElement('li'); const nivelReal = niveles.length - 1 - index; li.textContent = nivel; if (nivelReal < estadoJuego.preguntaActualIdx) li.classList.add('nivel-superado'); if (nivelReal === estadoJuego.preguntaActualIdx) li.classList.add('nivel-actual'); if (nivelReal === 4 || nivelReal === 9) li.classList.add('nivel-seguro'); arbolCapacidadEl.appendChild(li); }); };
+        reiniciarYJugar = function() { resetEstadoJuego(); document.getElementById('jugador-input').textContent = ''; document.getElementById('teclado-virtual').querySelector('.accept-key').disabled = true; mostrarPantalla('registro-screen'); };
+        cargarPregunta = function() { actualizarArbol(); const preguntaData = estadoJuego.preguntasRonda[estadoJuego.preguntaActualIdx]; document.getElementById('pregunta-contenedor').textContent = preguntaData.pregunta; const respuestasCont = document.getElementById('respuestas-contenedor'); respuestasCont.innerHTML = ''; preguntaData.opciones.forEach((opcion, index) => { const btn = document.createElement('button'); btn.className = 'respuesta-btn'; btn.innerHTML = `<span class="respuesta-letra">${['A', 'B', 'C', 'D'][index]}:</span> ${opcion}`; btn.onclick = () => seleccionarRespuesta(btn, index); respuestasCont.appendChild(btn); }); };
+        seleccionarRespuesta = function(btn, index) { document.querySelectorAll('.respuesta-btn').forEach(b => b.classList.remove('seleccionada')); btn.classList.add('seleccionada'); document.querySelectorAll('.respuesta-btn').forEach(b => b.disabled = true); setTimeout(() => verificarRespuesta(index), 2000); };
+        verificarRespuesta = function(selectedIndex) { const preguntaData = estadoJuego.preguntasRonda[estadoJuego.preguntaActualIdx]; if (selectedIndex === preguntaData.respuesta) { document.querySelectorAll('.respuesta-btn')[selectedIndex].classList.add('correcta'); if(preguntaData.categoria === "Conversion") estadoJuego.aciertosConversion++; if(preguntaData.categoria === "Historia") estadoJuego.aciertosHistoria++; verificarLogros(); document.getElementById('fragmento-texto').textContent = preguntaData.conocimiento; document.getElementById('fragmento-overlay').classList.add('active'); setTimeout(() => { document.getElementById('fragmento-overlay').classList.remove('active'); estadoJuego.preguntaActualIdx++; if (loreInterludios[estadoJuego.preguntaActualIdx - 1]) { const lore = loreInterludios[estadoJuego.preguntaActualIdx - 1]; document.getElementById('lore-titulo').textContent = lore.titulo; document.getElementById('lore-texto').textContent = lore.texto; mostrarPantalla('lore-interludio-screen'); } else if (estadoJuego.preguntaActualIdx >= estadoJuego.preguntasRonda.length) { finalizarJuego(true); } else { cargarPregunta(); } }, 4000); } else { document.getElementById('juego-screen').classList.add('glitch'); const botones = document.querySelectorAll('.respuesta-btn'); botones[selectedIndex].classList.add('incorrecta'); botones[preguntaData.respuesta].classList.add('correcta'); setTimeout(() => { document.getElementById('juego-screen').classList.remove('glitch'); finalizarJuego(false); }, 3000); } };
+
+        // --- V. SECUENCIA DE ARRANQUE (MAIN EXECUTION) ---
+        // Esta es la única sección que ejecuta código al cargar. Todo lo anterior son solo definiciones.
+
+        // 1. Inyectar el HTML en los contenedores de pantalla.
+        rellenarHTML();
+
+        // 2. Inicializar el estado del juego por primera vez.
+        resetEstadoJuego();
+
+        // 3. Construir componentes dinámicos como el teclado.
+        generarTeclado();
+
+        // 4. Asignar todos los listeners de eventos a los nuevos elementos del DOM.
+        document.getElementById('iniciar-juego-btn').onclick = () => iniciarJuego();
+        document.getElementById('iniciar-semilla-btn').onclick = iniciarJuegoConSemilla;
+        document.getElementById('mostrar-salon-btn').onclick = () => mostrarPantalla('salon-screen');
+        document.getElementById('continuar-lore-btn').onclick = continuarJuegoDesdeLore;
+        document.getElementById('reiniciar-btn').onclick = reiniciarYJugar;
+        document.getElementById('volver-menu-btn').onclick = () => mostrarPantalla('menu-screen');
+        document.getElementById('reactivar-fullscreen-btn').onclick = entrarEnPantallaCompleta;
+        document.getElementById('comodin-5050').onclick = usarComodin5050;
+        document.getElementById('comodin-sysadmin').onclick = usarComodinSysAdmin;
+        document.getElementById('comodin-red').onclick = usarComodinRed;
+        
+        // Listeners globales para la pantalla completa.
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(
+            event => document.addEventListener(event, manejarCambioDePantallaCompleta, false)
+        );
+
+        // 5. Iniciar la secuencia visual de precarga.
+        iniciarPrecarga();
+
+    });
+    </script>
+</body>
+</html>
