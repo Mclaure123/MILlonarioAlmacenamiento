@@ -770,7 +770,7 @@
                 if(error) throw error;
                 if (data) { 
                     const tenMinsAgo = new Date(Date.now() - 10 * 60000); 
-                    state.onlinePlayers = data.filter(player => new Date(player.last_seen) > tenMinsAgo && player.id !== p.id && player.name !== p.name); 
+                    state.onlinePlayers = data.filter(player => new Date(player.last_seen) > tenMinsAgo);
                     if(!document.getElementById('screen-arena').classList.contains('hidden')) renderHybridArenaList(state.onlinePlayers); 
                 }
             } catch(e) { 
