@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SISTEMA MILLONARIO v16.9 (HUD MEJORADO & FULLSCREEN LOCK)</title>
+    <title>SISTEMA MILLONARIO v16.10 (HUD ELÁSTICO & SUPABASE INMORTAL)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
@@ -22,7 +22,7 @@
         body.theme-general { --theme-primary: #ffaa00; --theme-glow: rgba(255, 170, 0, 0.5); --theme-glow-dim: rgba(255, 170, 0, 0.1); }
         body.theme-duel { --theme-primary: #ff003c; --theme-glow: rgba(255, 0, 60, 0.6); --theme-glow-dim: rgba(255, 0, 60, 0.2); }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; user-select: none; -webkit-user-drag: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; user-select: none; -webkit-user-drag: none; word-wrap: break-word; }
         html, body { height: 100vh; width: 100vw; overflow: hidden; touch-action: none; }
 
         body {
@@ -31,7 +31,6 @@
             background-size: 100% 100%, 40px 40px, 40px 40px; transition: background-image 0.5s ease;
         }
 
-        /* NUEVO INDICADOR DE RED (HUD SUPERIOR DERECHO) */
         #network-status {
             position: fixed; top: 1.5vh; right: 1.5vw; z-index: 10000;
             width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
@@ -60,8 +59,9 @@
         .btn-action:active { transform: scale(0.95) translateY(4px); } 
         .btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: grayscale(1); }
 
-        .player-container { display: flex; width: 100%; max-width: 1000px; height: 65vh; gap: 2vw; justify-content: center; align-items: stretch; overflow: hidden; }
-        .keyboard-panel { flex: 1.5; background: var(--theme-glow-dim); border: 1px solid var(--theme-primary); border-radius: 10px; padding: 2vh 2vw; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 0 0 20px var(--theme-glow-dim); transition: all 0.5s;}
+        /* AJUSTE ESPACIAL 1: Expansión Dinámica */
+        .player-container { display: flex; width: 100%; max-width: 1000px; height: auto; flex-grow: 1; max-height: 75vh; gap: 2vw; justify-content: center; align-items: stretch; overflow: hidden; margin-bottom: 2vh;}
+        .keyboard-panel { flex: 1.5; background: var(--theme-glow-dim); border: 1px solid var(--theme-primary); border-radius: 10px; padding: 2vh 2vw; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 0 0 20px var(--theme-glow-dim); transition: all 0.5s; overflow-y: auto;}
         #player-input { width: 100%; background: #000; border: 2px solid var(--theme-primary); color: var(--theme-primary); font-size: clamp(1.5rem, 4vh, 2.5rem); font-family: var(--font-retro); text-align: center; padding: 1vh; margin-bottom: 1vh; border-radius: 5px; text-transform: uppercase; outline: none; transition: all 0.5s;}
         .keyboard { display: flex; flex-direction: column; gap: 1vh; width: 100%; flex-grow: 1; justify-content: center;}
         .key-row { display: flex; justify-content: center; gap: 0.5vw; }
@@ -70,14 +70,15 @@
         
         .saved-players-panel { flex: 1; background: rgba(0, 0, 0, 0.5); border: 1px solid #444; border-radius: 10px; padding: 2vh; display: flex; flex-direction: column; overflow: hidden; }
         .saved-players-panel h3 { color: var(--theme-primary); font-family: var(--font-retro); font-size: clamp(1.2rem, 3vh, 1.8rem); margin-bottom: 1vh; border-bottom: 1px solid #444; padding-bottom: 1vh; }
-        .player-list { display: flex; flex-direction: column; gap: 1vh; overflow: hidden; flex-grow: 1; justify-content: flex-start;}
+        .player-list { display: flex; flex-direction: column; gap: 1vh; overflow-y: auto; flex-grow: 1; justify-content: flex-start;}
         .player-item { display: flex; justify-content: space-between; align-items: center; background: var(--theme-glow-dim); border: 1px solid rgba(255,255,255,0.1); padding: 1.5vh 1vw; border-radius: 5px; cursor: pointer; transition: all 0.2s;}
         .player-item:hover { background: rgba(255,255,255,0.1); border-color: var(--theme-primary); transform: translateX(5px); }
         .player-name { font-family: var(--font-retro); font-size: clamp(1.2rem, 3vh, 1.5rem); color: #fff; letter-spacing: 2px;}
         .player-delete { background: var(--color-error); color: #fff; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1.2rem; transition: transform 0.2s; }
         .player-delete:hover { transform: scale(1.2); box-shadow: 0 0 10px var(--color-error); }
 
-        .modules-layout { display: flex; width: 100%; max-width: 1000px; height: 60vh; gap: 2vw; align-items: stretch; justify-content: center; margin: 0 auto; overflow: hidden;}
+        /* AJUSTE ESPACIAL 2: Expansión Dinámica */
+        .modules-layout { display: flex; width: 100%; max-width: 1000px; height: auto; flex-grow: 1; max-height: 75vh; gap: 2vw; align-items: stretch; justify-content: center; margin: 0 auto; overflow: hidden;}
         .modules-grid { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 1.5vh 1.5vw; height: 100%; overflow: hidden;}
         .module-btn { background: linear-gradient(135deg, var(--color-panel) 0%, #0d1b3e 100%); border: 2px solid #333; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; padding: 1vh;}
         
@@ -102,7 +103,7 @@
         .btn-arena { background: #ff003c; border-color: #ff003c; box-shadow: 0 0 15px rgba(255,0,60,0.5); width: 100%; font-size: 1.2rem; padding: 1.5vh;}
         .btn-arena:hover { background: #ff3366; box-shadow: 0 0 25px rgba(255,0,60,0.8); }
 
-        #arena-list { display: flex; flex-direction: column; gap: 1.5vh; width: 100%; max-width: 800px; height: 50vh; overflow: auto; background: rgba(0,0,0,0.5); border: 2px solid var(--theme-primary); border-radius: 10px; padding: 2vh;}
+        #arena-list { display: flex; flex-direction: column; gap: 1.5vh; width: 100%; max-width: 800px; height: 50vh; overflow-y: auto; background: rgba(0,0,0,0.5); border: 2px solid var(--theme-primary); border-radius: 10px; padding: 2vh;}
         .online-player { display: flex; justify-content: space-between; align-items: center; background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.3); padding: 2vh 2vw; border-radius: 8px; transition: all 0.2s; }
         .online-player:hover { background: rgba(0, 240, 255, 0.2); border-color: var(--theme-primary); transform: translateX(5px); }
         .online-player.is-bot { border-color: rgba(255, 170, 0, 0.5); background: rgba(255, 170, 0, 0.1); }
@@ -114,13 +115,27 @@
 
         /* DUEL SCREEN - MUERTE SÚBITA */
         #screen-duel { background: radial-gradient(circle at center, #3a000d 0%, #050000 100%); }
-        .duel-header { display: flex; justify-content: center; width: 100%; height: 15vh; padding: 1vh 5vw; border-bottom: 2px solid var(--color-error); background: rgba(0,0,0,0.8); box-shadow: 0 0 20px var(--color-error); align-items: center; gap: 4vw;}
+        .duel-header { display: flex; justify-content: center; width: 100%; height: auto; min-height: 12vh; padding: 2vh 5vw; border-bottom: 2px solid var(--color-error); background: rgba(0,0,0,0.8); box-shadow: 0 0 20px var(--color-error); align-items: center; gap: 4vw;}
         
         .duel-name { font-family: var(--font-modern); font-weight: 900; font-size: clamp(1.5rem, 3.5vh, 2.5rem); color: #fff; text-align: center; text-transform: uppercase; letter-spacing: 2px;}
         .duel-vs { font-family: var(--font-retro); font-size: clamp(2rem, 5vh, 4rem); color: var(--color-error); text-shadow: 0 0 20px var(--color-error); animation: pulse-correct 0.5s infinite;}
         
+        /* AJUSTE ESPACIAL 3: Caja de colisiones en el Duelo y Grid Autoadaptable */
         .duel-timer { font-family: var(--font-retro); font-size: clamp(3rem, 8vh, 6rem); color: var(--color-gold); text-shadow: 0 0 30px #ffaa00; margin: 1vh 0; line-height: 1;}
-        .duel-question-container { width: 90%; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 85vh; overflow: hidden; padding-top: 2vh; position: relative;}
+        .duel-question-container { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; height: auto; flex-grow: 1; overflow-y: auto; padding: 2vh 4vw;}
+        .question-text { font-size: clamp(1.2rem, 3vh, 2.2rem); font-weight: 700; margin: 2vh 0; line-height: 1.3; color: #fff; text-align: center; width: 100%;}
+        
+        .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5vh 1.5vw; width: 100%; height: auto; align-content: center;}
+        
+        .option-btn { background: var(--theme-glow-dim); border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 2vh; font-size: clamp(1.1rem, 2.2vh, 1.5rem); font-family: var(--font-modern); font-weight: bold; color: #ddd; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; justify-content: flex-start; width: 100%; height: auto; min-height: 10vh; box-sizing: border-box; word-break: break-word; white-space: normal; line-height: 1.3;}
+        .option-btn::before { content: attr(data-letter) ":"; color: var(--theme-primary); margin-right: 15px; font-size: 1.5rem; font-weight: 900; transition: color 0.5s; flex-shrink: 0;}
+        .option-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--theme-primary); color: #fff; transform: scale(0.98); box-shadow: inset 0 0 15px var(--theme-glow);}
+        .option-btn.selected-correct { background: rgba(57, 255, 20, 0.9); border-color: var(--color-success); color: #000; animation: pulse-correct 0.5s; box-shadow: inset 0 0 20px rgba(57,255,20,0.5);}
+        .option-btn.selected-correct::before { color: #000; }
+        .option-btn.selected-wrong { background: rgba(255, 0, 60, 0.9); border-color: var(--color-error); color: #FFF; animation: shake-wrong 0.4s; box-shadow: inset 0 0 20px rgba(255,0,60,0.5);}
+        .option-btn.selected-wrong::before { color: #FFF; }
+        .option-btn.reveal-correct { background: rgba(57, 255, 20, 0.9); border-color: var(--color-success); color: #000; }
+        .option-btn.reveal-correct::before { color: #000; }
 
         /* PANTALLA DE JUEGO (HUD MEJORADO +30%) */
         #header-game { display: flex; justify-content: space-between; align-items: center; padding: 0 2vw; background: rgba(0, 10, 25, 0.9); border-bottom: 2px solid var(--theme-primary); box-shadow: 0 5px 20px var(--theme-glow-dim); z-index: 5; height: 10vh; transition: border-color 0.5s, box-shadow 0.5s;}
@@ -153,29 +168,16 @@
         .card-prize { font-size: clamp(1.2rem, 3.5vh, 2.5rem); font-weight: bold; text-shadow: 0 0 10px currentColor; z-index: 2;}
         .card-status-icon { margin-top: 5px; z-index: 2; font-size: clamp(2rem, 5vh, 3.5rem); display: flex; justify-content: center; align-items: center;}
 
-        /* MODALES */
+        /* AJUSTE ESPACIAL 4: Modales desplazables */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 5, 10, 0.95); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 2vh; overflow: hidden; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal-content { background: linear-gradient(180deg, var(--color-panel) 0%, #050a15 100%); border: 2px solid var(--theme-primary); border-radius: 12px; width: 100%; max-width: 1100px; height: auto; max-height: 96vh; padding: 4vh 3vw; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9); transform: scale(1.05); transition: transform 0.3s, border-color 0.5s; display: flex; flex-direction: column; justify-content: center; gap: 3vh; overflow: hidden;}
+        .modal-content { background: linear-gradient(180deg, var(--color-panel) 0%, #050a15 100%); border: 2px solid var(--theme-primary); border-radius: 12px; width: 100%; max-width: 1100px; height: auto; max-height: 90vh; padding: 4vh 3vw; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9); transform: scale(1.05); transition: transform 0.3s, border-color 0.5s; display: flex; flex-direction: column; justify-content: center; gap: 3vh; overflow-y: auto;}
         .modal-overlay.active .modal-content { transform: scale(1); }
 
         .modal-header { display: flex; flex-direction: column; align-items: center; transition: all 0.3s ease; }
         .prize-alert { font-size: clamp(1.2rem, 2.5vh, 1.5rem); color: var(--theme-primary); text-transform: uppercase; letter-spacing: 2px; transition: color 0.5s;}
         .prize-amount { font-size: clamp(3rem, 6vh, 5rem); font-family: var(--font-retro); color: #fff; font-weight: bold; text-shadow: 0 0 15px var(--theme-primary); line-height: 1; transition: color 0.3s, text-shadow 0.3s;}
-        .question-text { font-size: clamp(1.5rem, 4vh, 2.8rem); font-weight: 700; margin: 1vh 0; line-height: 1.2; color: #fff;}
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 2vh 2vw; width: 100%; flex-grow: 1; overflow: hidden;}
-        
-        .option-btn { background: var(--theme-glow-dim); border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 2vh; font-size: clamp(1.1rem, 2.5vh, 1.6rem); font-family: var(--font-modern); font-weight: bold; color: #ddd; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; justify-content: flex-start; width: 100%; height: 100%; min-height: 10vh; box-sizing: border-box; overflow: hidden;}
-        .option-btn::before { content: attr(data-letter) ":"; color: var(--theme-primary); margin-right: 15px; font-size: 1.5rem; font-weight: 900; transition: color 0.5s;}
-        .option-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--theme-primary); color: #fff; transform: scale(0.98); box-shadow: inset 0 0 15px var(--theme-glow);}
-        .option-btn.selected-correct { background: rgba(57, 255, 20, 0.9); border-color: var(--color-success); color: #000; animation: pulse-correct 0.5s; box-shadow: inset 0 0 20px rgba(57,255,20,0.5);}
-        .option-btn.selected-correct::before { color: #000; }
-        .option-btn.selected-wrong { background: rgba(255, 0, 60, 0.9); border-color: var(--color-error); color: #FFF; animation: shake-wrong 0.4s; box-shadow: inset 0 0 20px rgba(255,0,60,0.5);}
-        .option-btn.selected-wrong::before { color: #FFF; }
-        .option-btn.reveal-correct { background: rgba(57, 255, 20, 0.9); border-color: var(--color-success); color: #000; }
-        .option-btn.reveal-correct::before { color: #000; }
 
-        /* MINI MODAL DUELOS */
         #modal-challenge .modal-content { max-width: 600px; border-color: var(--color-error); box-shadow: 0 0 30px rgba(255,0,60,0.5); }
         .duel-topic-btn { background: #111; border: 2px solid #555; color: #fff; padding: 2vh; font-family: var(--font-modern); font-size: clamp(1rem, 2.5vh, 1.4rem); font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.2s;}
         .duel-topic-btn:hover, .duel-topic-btn.selected { border-color: var(--theme-primary); background: var(--theme-glow-dim); box-shadow: inset 0 0 15px var(--theme-glow); transform: scale(0.98);}
@@ -226,7 +228,6 @@
             .vault-title { font-size: 0.8rem; }
             .vault-amount { font-size: 1.5rem; }
             .player-container { flex-direction: column; height: auto; flex-grow: 1; }
-            .options-grid { grid-template-columns: 1fr; }
             .modal-content { padding: 3vh 4vw; }
             .duel-header { height: auto; padding: 1vh 2vw; }
             .duel-name { font-size: 1.5rem; }
@@ -364,8 +365,8 @@
             <div class="duel-question-container">
                 <div class="duel-timer" id="duel-timer">15.0</div>
                 <div style="font-size: clamp(1rem, 2vh, 1.5rem); color:var(--color-error); text-transform: uppercase; font-weight: bold;" id="duel-topic-label">🔥 MUERTE SÚBITA - 1 PREGUNTA 🔥</div>
-                <div class="question-text" id="duel-question" style="font-size: clamp(1.8rem, 4vh, 3rem); text-align: center; height: 15vh; display:flex; align-items:center; justify-content:center;">Cargando...</div>
-                <div class="options-grid" id="duel-options" style="margin-top: 2vh;"></div>
+                <div class="question-text" id="duel-question">Cargando...</div>
+                <div class="options-grid" id="duel-options"></div>
             </div>
         </div>
 
@@ -375,7 +376,7 @@
                     <span class="prize-alert">Datos detectados en este sector:</span>
                     <span class="prize-amount" id="modal-prize">+ 0 BITS</span>
                 </div>
-                <div class="question-text" id="modal-question" style="height: 12vh; display:flex; align-items:center; justify-content:center;">¿Cargando datos...?</div>
+                <div class="question-text" id="modal-question">¿Cargando datos...?</div>
                 <div class="options-grid" id="modal-options"></div>
             </div>
         </div>
@@ -413,14 +414,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // ==========================================
-        // CONFIGURACIÓN DE SUPABASE Y CONSTANTES
-        // ==========================================
         const SUPABASE_URL = "https://iwuglirgkvnobhatgedq.supabase.co"; 
         const SUPABASE_ANON_KEY = "sb_publishable_sNgWni9L5DWroTgEPKhKQw_cST-OXxR"; 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 
-        // MOTOR DE NOTIFICACIONES INMORTAL
         const NotificationEngine = {
             init() {
                 if (!document.getElementById('millo-toaster')) {
@@ -439,18 +436,13 @@
             }
         };
 
-        // MATEMÁTICAS DE ALMACENAMIENTO (En Bits)
         const BITS = 1; const BYTES = 8; const KB = 8192; const MB = 8388608; const GB = 8589934592;
 
-        // Progresión Exacta de 20 preguntas = 1 GB (8,589,934,592 Bits)
         const PRIZES_BITS_PROGRESSION = [
             1 * BYTES, 1023 * BYTES, 255 * KB, 256 * KB, 512 * KB, 3 * MB, 4 * MB, 8 * MB, 16 * MB, 32 * MB,
             64 * MB, 128 * MB, 256 * MB, 128 * MB, 128 * MB, 64 * MB, 64 * MB, 64 * MB, 32 * MB, 32 * MB
         ];
 
-        // ==========================================
-        // BASE DE DATOS DE PREGUNTAS (80 TOTAL)
-        // ==========================================
         const DB_MODULES = {
             informatica: [
                 { id: "i1", q: "¿Qué es el Software de una computadora?", c: "Los programas y aplicaciones de tu equipo.", d: ["Los componentes físicos de la computadora.", "Los cables de red y conexiones a internet.", "Los botones de encendido de todo el equipo."] },
@@ -460,8 +452,8 @@
                 { id: "i5", q: "¿Para qué sirve un programa Antivirus?", c: "Para detectar y borrar programas maliciosos.", d: ["Para limpiar el teclado del polvo acumulado.", "Para hacer que los videojuegos vayan rápidos.", "Para descargar todas las películas de la red."] },
                 { id: "i6", q: "¿Qué es un Disco de Estado Sólido (SSD)?", c: "Un disco de almacenamiento muy veloz y sin motor.", d: ["Un disco de música muy antiguo para los tocadiscos.", "Un programa de almacenamiento muy lento y con virus.", "Una memoria temporal que siempre se borra al apagar."] },
                 { id: "i7", q: "¿Qué es la Nube en la informática moderna?", c: "Muchos servidores en internet para guardar archivos.", d: ["Muchas nubes reales en el cielo que guardan datos.", "Muchos programas para ver el clima en tu ciudad hoy.", "Muchos juegos de video sobre aviones y helicópteros."] },
-                { id: "i8", q: "¿Qué hace la combinación de 'Ctrl + C'?", c: "Esta copia los elementos que fueron seleccionados.", d: ["Esta corta los elementos directos desde la pantalla.", "Esta pega los elementos que ya estaban guardados hoy.", "Esta cierra todos los programas de un solo golpe fuerte."] },
-                { id: "i9", q: "¿Qué hace la combinación de 'Ctrl + V'?", c: "Esta pega los elementos que copiaste previamente.", d: ["Esta corta los elementos directos desde la pantalla.", "Esta copia los elementos que fueron seleccionados hoy.", "Esta cierra todos los programas de un solo golpe fuerte."] },
+                { id: "i8", q: "¿Qué hace la combination de 'Ctrl + C'?", c: "Esta copia los elementos que fueron seleccionados.", d: ["Esta corta los elementos directos desde la pantalla.", "Esta pega los elementos que ya estaban guardados hoy.", "Esta cierra todos los programas de un solo golpe fuerte."] },
+                { id: "i9", q: "¿Qué hace la combination de 'Ctrl + V'?", c: "Esta pega los elementos que copiaste previamente.", d: ["Esta corta los elementos directos desde la pantalla.", "Esta copia los elementos que fueron seleccionados hoy.", "Esta cierra todos los programas de un solo golpe fuerte."] },
                 { id: "i10", q: "¿Cuál es la unidad base de información (Bit)?", c: "La mínima unidad, que siempre es un cero o un uno.", d: ["Es un bloque enorme de datos visuales en internet.", "Es la medida de energía eléctrica de la computadora.", "Es el disco duro interno que guarda todas las fotos."] },
                 { id: "i11", q: "¿Qué es la memoria RAM en tu computadora?", c: "La memoria rápida de trabajo temporal que se borra.", d: ["El disco duro donde se guardan todas las fotos hoy.", "El programa que limpia los virus de tu computadora.", "La batería que mantiene encendida tu pequeña laptop."] },
                 { id: "i12", q: "¿Qué significa el acrónimo WWW en la web?", c: "World Wide Web, la red informática mundial gigante.", d: ["Web World Window, las ventanas gráficas de internet.", "Wild Web World, el mundo salvaje del gran internet.", "Word Wide Web, la red de palabras gigantescas hoy."] },
@@ -470,7 +462,7 @@
                 { id: "i15", q: "¿Qué significa descargar un archivo hoy?", c: "Copiar datos de internet hacia tu equipo personal.", d: ["Subir un archivo tuyo hacia un servidor de internet.", "Borrar por completo un archivo de tu disco duro hoy.", "Mover un archivo de tu pantalla a la papelera hoy."] },
                 { id: "i16", q: "¿Qué es un navegador web en informática?", c: "Un programa para visitar y leer páginas de internet.", d: ["Un juego de carreras de barcos en mares virtuales.", "Un disco duro portátil para llevar en el bolsillo hoy.", "Una antena que capta señales de radio y televisión."] },
                 { id: "i17", q: "¿Cuál de estos es un lenguaje de programación?", c: "JavaScript, usado para crear páginas web dinámicas.", d: ["Windows, que es un sistema operativo muy popular.", "Monitor, que es la pantalla de tu computadora hoy.", "Teclado, que sirve para escribir textos largos hoy."] },
-                { id: "i18", q: "¿Qué hace la combinación de 'Ctrl + Z'?", c: "Deshacer la última acción que realizaste en el PC.", d: ["Apagar completamente tu computadora al instante hoy.", "Guardar el archivo en tu disco duro inmediatamente.", "Borrar todo el texto que está en la pantalla hoy."] },
+                { id: "i18", q: "¿Qué hace la combination de 'Ctrl + Z'?", c: "Deshacer la última acción que realizaste en el PC.", d: ["Apagar completamente tu computadora al instante hoy.", "Guardar el archivo en tu disco duro inmediatamente.", "Borrar todo el texto que está en la pantalla hoy."] },
                 { id: "i19", q: "¿Qué es el Spam en el correo electrónico?", c: "Mensajes masivos no solicitados o correo basura.", d: ["Mensajes importantes de tu jefe o de tu familia hoy.", "Archivos de video muy pesados adjuntos en correos.", "Un tipo de carne enlatada que se vende por internet."] },
                 { id: "i20", q: "¿Para qué sirve la memoria Caché del CPU?", c: "Almacenar datos recientes para un acceso muy rápido.", d: ["Guardar fotos y videos para verlos muchos años después.", "Reproducir música en alta calidad desde el internet.", "Proteger la computadora de virus y ataques externos."] }
             ],
@@ -555,9 +547,6 @@
         let localDB = { players: [], currentPlayerName: null };
         let isOnline = navigator.onLine;
 
-        // ==========================================
-        // UTILIDADES Y PRNG
-        // ==========================================
         function formatDataString(bits) { bits = parseInt(bits) || 0; if (bits < BYTES) return `${bits} BITS`; let bytes = Math.floor(bits / BYTES); if (bytes < 1024) return `${bytes} BYTES`; let kb = bytes / 1024; if (kb < 1024) return `${kb % 1 === 0 ? kb : kb.toFixed(1)} KB`; let mb = kb / 1024; if (mb < 1024) return `${mb % 1 === 0 ? mb : mb.toFixed(1)} MB`; let gb = mb / 1024; return `${gb % 1 === 0 ? gb : gb.toFixed(2)} GB`; }
         function mulberry32(a) { return function() { var t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } }
         function hashString(str) { let h = 0; for(let i=0;i<str.length;i++) h = Math.imul(31, h) + str.charCodeAt(i) | 0; return h; }
@@ -582,9 +571,6 @@
         };
         function getCurrentWave() { return THEME_WAVES[state.currentModule] || 'square'; }
 
-        // ==========================================
-        // MOTOR INMORTAL (LOCAL FIRST + SUPABASE)
-        // ==========================================
         function checkNetworkStatus() {
             const netUI = document.getElementById('network-status'); const vaultUI = document.getElementById('vault-title-ui'); const arenaUI = document.getElementById('btn-goto-arena');
             if (isOnline) { netUI.className = 'status-online'; netUI.textContent = '🟢'; vaultUI.textContent = 'Bóveda en Nube'; arenaUI.textContent = 'BATTLE ARENA'; } 
@@ -623,12 +609,11 @@
                         p.progress.informatica = data.progress_informatica || getBaseProgress(); p.progress.calculos = data.progress_calculos || getBaseProgress();
                         p.progress.palabras = data.progress_palabras || getBaseProgress(); p.progress.general = data.progress_general || getBaseProgress();
                     }
-                } catch (e) { /* Ignorar errores de carga iniciales para evitar colapsos */ }
+                } catch (e) { }
             }
             saveLocalData(); renderPlayerList(); updateUIStats();
         }
 
-        // --- ACTUALIZADO: SAVE CLOUD STORAGE CON MOTOR INMORTAL ---
         async function saveCloudStorage() {
             saveLocalData(); if (!isOnline || !getActivePlayer()) return;
             let p = getActivePlayer();
@@ -675,9 +660,6 @@
             loadLocalData(); checkNetworkStatus(); await loadCloudStorage(); if(isOnline) setupRealtimeListeners(); 
         };
 
-        // ==========================================
-        // UI PRINCIPAL
-        // ==========================================
         function nav(screenId) { document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById(screenId).classList.remove('hidden'); document.body.className = (screenId === 'screen-duel') ? 'theme-duel' : ''; }
 
         function renderPlayerList() {
@@ -713,9 +695,6 @@
             });
         }
 
-        // ==========================================
-        // JUEGO SOLITARIO
-        // ==========================================
         function initGame(moduleName) {
             AudioEngine.resume(); AudioEngine.sndClick(); state.currentModule = moduleName; state.isAnimating = false; document.body.className = `theme-${moduleName}`; requestFS();
             let p = getActivePlayer(); let prog = p.progress[moduleName];
@@ -768,9 +747,6 @@
             setTimeout(() => { document.getElementById('modal-overlay').classList.remove('active'); state.isAnimating = false; if(isCorrect) renderBoardHTML(); if (state.cardsPlayed >= 20) { AudioEngine.sndWinGame(); document.getElementById('ui-final-score').textContent = formatDataString(state.currentScoreBits); nav('screen-end'); spawnParticles(document.body, 'success'); } }, 2500); 
         }
 
-        // ==========================================
-        // ARENA: DUELO A MUERTE SÚBITA (1 PREGUNTA)
-        // ==========================================
         const ARENA_PRIZE_BITS = 500 * MB; 
         
         const IA_BOTS = [ 
@@ -787,7 +763,6 @@
             nav('screen-arena');
         }
 
-        // --- ACTUALIZADO: CARGA CON MOTOR DE NOTIFICACIONES ---
         async function fetchArenaPlayers() {
             let p = getActivePlayer(); if(!p) return;
             try {
@@ -872,7 +847,6 @@
             state.activeChallengeId = null; state.currentChallenge = null;
         }
 
-        // -- MUERTE SÚBITA CONTRA IA --
         function startBotDuel(bot) {
             if (state.isAnimating) return; state.isAnimating = true; AudioEngine.resume(); AudioEngine.sndClick(); spawnFloatingText("HACKEANDO IA...", "success");
             setTimeout(() => {
@@ -927,9 +901,6 @@
 
         document.getElementById('btn-mdr-close').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); document.getElementById('modal-duel-result').classList.remove('active'); document.getElementById('screen-duel').classList.add('hidden'); updateUIStats(); nav('screen-arena'); });
         
-        // ==========================================
-        // SEGURIDAD, FULLSCREEN LOCK Y EVENTOS TECLADO
-        // ==========================================
         function handleSecurityViolation() { 
             if (!document.getElementById('screen-game').classList.contains('hidden') || !document.getElementById('screen-duel').classList.contains('hidden')) {
                 document.getElementById('security-overlay').classList.add('active'); AudioEngine.sndAlarm(); 
