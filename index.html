@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SISTEMA MILLONARIO v20.0 (CLOUD & MULTIJUGADOR)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SISTEMA MILLONARIO v22.0 (NO REPEATS)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
@@ -24,75 +24,73 @@
         body.theme-hof { --theme-primary: #ffaa00; --theme-glow: rgba(255, 170, 0, 0.5); --theme-glow-dim: rgba(255, 170, 0, 0.1); }
 
         * { margin: 0; padding: 0; box-sizing: border-box; outline: none; -webkit-user-drag: none; }
-        html, body { height: 100%; width: 100%; overflow: hidden; touch-action: manipulation; }
+        
+        html, body { height: 100dvh; width: 100vw; overflow: hidden; touch-action: none; overscroll-behavior: none; }
 
         body {
             background-color: var(--color-bg); color: var(--color-text); font-family: var(--font-modern); position: relative;
             background-image: radial-gradient(circle at 50% 50%, var(--theme-glow-dim) 0%, transparent 60%), linear-gradient(var(--theme-glow-dim) 1px, transparent 1px), linear-gradient(90deg, var(--theme-glow-dim) 1px, transparent 1px);
             background-size: 100% 100%, 40px 40px, 40px 40px; transition: background-image 0.5s ease;
+            display: flex; flex-direction: column;
         }
 
-        /* ESTADO DE RED */
         #network-status {
-            position: fixed; bottom: 2vh; left: 2vw; z-index: 10000; font-family: var(--font-retro); font-size: 1.2rem;
+            position: fixed; bottom: 2vh; left: 2vw; z-index: 10000; font-family: var(--font-retro); font-size: clamp(0.8rem, 1.5vw, 1.2rem);
             padding: 0.8vh 1.5vw; border-radius: 5px; border: 1px solid; transition: all 0.3s; pointer-events: none;
         }
         .status-online { color: var(--color-success); border-color: var(--color-success); background: rgba(57, 255, 20, 0.1); text-shadow: 0 0 10px var(--color-success);}
         .status-offline { color: var(--color-error); border-color: var(--color-error); background: rgba(255, 0, 60, 0.1); text-shadow: 0 0 10px var(--color-error);}
         .status-local { color: var(--color-gold); border-color: var(--color-gold); background: rgba(255, 170, 0, 0.1); text-shadow: 0 0 10px var(--color-gold);}
 
-        /* EFECTOS VISUALES Y ANIMACIONES */
-        #error-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(255, 0, 60, 0.35); pointer-events: none; z-index: 9998; opacity: 0; transition: opacity 0.1s; }
+        #error-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background-color: rgba(255, 0, 60, 0.35); pointer-events: none; z-index: 9998; opacity: 0; transition: opacity 0.1s; }
         #error-flash.active { opacity: 1; }
+        #hack-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: radial-gradient(circle, rgba(255,0,60,0.8) 0%, transparent 100%); pointer-events: none; z-index: 9998; opacity: 0; transition: opacity 0.3s; mix-blend-mode: color-dodge;}
+        #hack-flash.active { animation: emergency-strobe 1s infinite; }
 
+        @keyframes emergency-strobe { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.8; } }
         @keyframes screenShake { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: translate(-10px, 5px) rotate(-1deg); } 20%, 40%, 60%, 80% { transform: translate(10px, -5px) rotate(1deg); } }
         body.shake-active { animation: screenShake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
 
-        /* ESTRUCTURA DE PANTALLAS */
-        #app-container { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
-        .screen { width: 100%; height: 100%; display: flex; flex-direction: column; position: absolute; top: 0; left: 0; transition: opacity 0.5s ease; background: var(--color-bg); z-index: 10; overflow-y: auto; overflow-x: hidden; padding-bottom: 5vh; }
-        .screen::-webkit-scrollbar { width: 8px; } .screen::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 4px; }
+        #app-container { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; flex-grow: 1;}
+        .screen { width: 100%; height: 100%; display: flex; flex-direction: column; position: absolute; top: 0; left: 0; transition: opacity 0.5s ease; background: var(--color-bg); z-index: 10; overflow: hidden; padding: 2vh 2vw;}
         .hidden { opacity: 0; pointer-events: none; z-index: -1; }
 
-        .menu-screen { align-items: center; text-align: center; background: radial-gradient(circle at center, var(--color-panel) 0%, #02050a 100%); padding: 5vh 2vw;}
-        .title-main { font-size: clamp(2rem, 5vw, 4rem); font-weight: 900; color: var(--theme-primary); text-shadow: 0 0 20px var(--theme-glow), 0 5px 0 #002244; margin-bottom: 1vh; line-height: 1.1; letter-spacing: 2px; transition: color 0.5s, text-shadow 0.5s;}
-        .title-sub { font-size: clamp(1rem, 2vw, 1.5rem); color: #fff; margin-bottom: 3vh; font-family: var(--font-retro); letter-spacing: 2px; }
+        .menu-screen { align-items: center; justify-content: center; background: radial-gradient(circle at center, var(--color-panel) 0%, #02050a 100%); }
+        .title-main { font-size: clamp(2rem, 6vw, 4.5rem); font-weight: 900; color: var(--theme-primary); text-shadow: 0 0 20px var(--theme-glow), 0 5px 0 #002244; margin-bottom: 1vh; line-height: 1.1; letter-spacing: 2px; text-align: center; flex-shrink: 0;}
+        .title-sub { font-size: clamp(1rem, 2.5vw, 1.5rem); color: #fff; margin-bottom: 2vh; font-family: var(--font-retro); letter-spacing: 2px; text-align: center; flex-shrink: 0;}
         
-        /* BOTONES CYBERPUNK */
         .btn-action { background: linear-gradient(to bottom, var(--theme-primary), #002244); border: 2px solid var(--theme-primary); color: white; font-size: clamp(1rem, 2vw, 1.5rem); font-weight: bold; padding: 1.5vh 3vw; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 1vh 2vh var(--theme-glow), inset 0 2px 5px rgba(255,255,255,0.5); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-family: var(--font-modern); clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); margin-top: 2vh; text-shadow: 1px 1px 2px #000; flex-shrink: 0;}
         .btn-action:hover { transform: scale(1.05) translateY(-5px); filter: brightness(1.2); } .btn-action:active { transform: scale(0.95) translateY(2px); } .btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: grayscale(1); }
 
-        /* PANTALLA JUGADORES Y TECLADO */
-        .player-container { display: flex; width: 100%; max-width: 1000px; min-height: 60vh; gap: 2vw; justify-content: center; align-items: stretch; flex-wrap: wrap;}
-        .keyboard-panel { flex: 1.5; min-width: 300px; background: var(--theme-glow-dim); border: 1px solid var(--theme-primary); border-radius: 10px; padding: 2vh 2vw; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 0 0 20px var(--theme-glow-dim); transition: all 0.5s;}
-        #player-input { width: 100%; background: #000; border: 2px solid var(--theme-primary); color: var(--theme-primary); font-size: clamp(1.5rem, 3vw, 2.5rem); font-family: var(--font-retro); text-align: center; padding: 1vh; margin-bottom: 1vh; border-radius: 5px; text-transform: uppercase; outline: none; transition: all 0.5s;}
+        .player-container { display: flex; width: 100%; max-width: 1000px; height: 60vh; gap: 2vw; justify-content: center; align-items: stretch; flex-wrap: wrap;}
+        .keyboard-panel { flex: 1.5; min-width: 300px; background: var(--theme-glow-dim); border: 1px solid var(--theme-primary); border-radius: 10px; padding: 2vh 2vw; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 0 0 20px var(--theme-glow-dim); transition: all 0.5s; overflow: hidden;}
+        #player-input { width: 100%; background: #000; border: 2px solid var(--theme-primary); color: var(--theme-primary); font-size: clamp(1.5rem, 3vw, 2.5rem); font-family: var(--font-retro); text-align: center; padding: 1vh; margin-bottom: 1vh; border-radius: 5px; text-transform: uppercase; flex-shrink: 0;}
         .keyboard { display: flex; flex-direction: column; gap: 1vh; width: 100%; flex-grow: 1; justify-content: center;}
-        .key-row { display: flex; justify-content: center; gap: 0.5vw; }
-        .key { background: #112; border: 1px solid var(--theme-primary); color: #fff; padding: 1vh 0; min-width: 25px; flex-grow: 1; text-align: center; font-family: var(--font-modern); font-weight: bold; border-radius: 4px; cursor: pointer; transition: all 0.1s; font-size: clamp(0.8rem, 1.5vw, 1.2rem); box-shadow: 0 3px 0 #002244; }
+        .key-row { display: flex; justify-content: center; gap: 0.5vw; height: 100%;}
+        .key { background: #112; border: 1px solid var(--theme-primary); color: #fff; padding: 0; flex-grow: 1; text-align: center; font-family: var(--font-modern); font-weight: bold; border-radius: 4px; cursor: pointer; transition: all 0.1s; font-size: clamp(0.8rem, 1.5vw, 1.2rem); box-shadow: 0 3px 0 #002244; display: flex; align-items: center; justify-content: center;}
         .key:active { transform: translateY(3px); box-shadow: 0 0 0 #002244; background: var(--theme-primary); color: #000;} .key.special { background: #003366; }
         
-        .saved-players-panel { flex: 1; min-width: 300px; background: rgba(0, 0, 0, 0.5); border: 1px solid #444; border-radius: 10px; padding: 2vh; display: flex; flex-direction: column; overflow: hidden; min-height: 300px;}
-        .saved-players-panel h3 { color: var(--theme-primary); font-family: var(--font-retro); font-size: clamp(1.2rem, 2vw, 1.8rem); margin-bottom: 1vh; border-bottom: 1px solid #444; padding-bottom: 1vh; transition: color 0.5s;}
+        .saved-players-panel { flex: 1; min-width: 300px; background: rgba(0, 0, 0, 0.5); border: 1px solid #444; border-radius: 10px; padding: 2vh; display: flex; flex-direction: column; overflow: hidden;}
+        .saved-players-panel h3 { color: var(--theme-primary); font-family: var(--font-retro); font-size: clamp(1.2rem, 2vw, 1.8rem); margin-bottom: 1vh; border-bottom: 1px solid #444; padding-bottom: 1vh; flex-shrink: 0;}
         .player-list { display: flex; flex-direction: column; gap: 1vh; overflow-y: auto; flex-grow: 1; padding-right: 5px;}
-        .player-list::-webkit-scrollbar { width: 8px; } .player-list::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 4px; }
-        .player-item { display: flex; justify-content: space-between; align-items: center; background: var(--theme-glow-dim); border: 1px solid rgba(255,255,255,0.1); padding: 1vh 1vw; border-radius: 5px; cursor: pointer; transition: all 0.2s; min-height: 50px;}
+        .player-list::-webkit-scrollbar { width: 6px; } .player-list::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 3px; }
+        .player-item { display: flex; justify-content: space-between; align-items: center; background: var(--theme-glow-dim); border: 1px solid rgba(255,255,255,0.1); padding: 1vh 1vw; border-radius: 5px; cursor: pointer; transition: all 0.2s; min-height: 50px; flex-shrink: 0;}
         .player-item:hover { background: rgba(255,255,255,0.1); border-color: var(--theme-primary); transform: translateX(5px); }
         .player-name { font-family: var(--font-retro); font-size: clamp(1.2rem, 2vw, 1.5rem); color: #fff; letter-spacing: 2px; flex-grow: 1;}
-        .btn-delete-player { background: var(--color-error); border: 1px solid #ff003c; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-left: 10px; transition: all 0.2s; box-shadow: 0 0 5px rgba(255,0,60,0.5);}
+        .btn-delete-player { background: var(--color-error); border: 1px solid #ff003c; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-left: 10px; transition: all 0.2s;}
         .btn-delete-player:hover { transform: scale(1.1); background: #ff3366; }
 
-        /* PANTALLA MÓDULOS */
-        .modules-layout { display: flex; width: 100%; max-width: 1000px; min-height: 60vh; gap: 2vw; align-items: stretch; justify-content: center; margin: 0 auto; flex-wrap: wrap;}
-        .modules-grid { flex: 1; min-width: 300px; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 1.5vh 1.5vw; height: 100%;}
-        .module-btn { background: linear-gradient(135deg, var(--color-panel) 0%, #0d1b3e 100%); border: 2px solid #333; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; padding: 2vh; min-height: 150px;}
+        .modules-layout { display: flex; width: 100%; max-width: 1000px; flex-grow: 1; gap: 2vw; align-items: stretch; justify-content: center; margin: 0 auto; flex-wrap: wrap; overflow: hidden; padding-bottom: 2vh;}
+        .modules-grid { flex: 2; min-width: 300px; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 1.5vh 1.5vw; height: 100%;}
+        .module-btn { background: linear-gradient(135deg, var(--color-panel) 0%, #0d1b3e 100%); border: 2px solid #333; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; padding: 2vh; }
         
         .module-btn[data-module="informatica"] { border-color: rgba(0, 240, 255, 0.3); } .module-btn[data-module="informatica"]:hover { border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.4); transform: scale(1.02); z-index: 2;} .module-btn[data-module="informatica"] .module-icon { color: #00f0ff; text-shadow: 0 0 10px #00f0ff; }
         .module-btn[data-module="calculos"] { border-color: rgba(57, 255, 20, 0.3); } .module-btn[data-module="calculos"]:hover { border-color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.4); transform: scale(1.02); z-index: 2;} .module-btn[data-module="calculos"] .module-icon { color: #39ff14; text-shadow: 0 0 10px #39ff14; }
         .module-btn[data-module="palabras"] { border-color: rgba(255, 0, 255, 0.3); } .module-btn[data-module="palabras"]:hover { border-color: #ff00ff; box-shadow: 0 0 15px rgba(255, 0, 255, 0.4); transform: scale(1.02); z-index: 2;} .module-btn[data-module="palabras"] .module-icon { color: #ff00ff; text-shadow: 0 0 10px #ff00ff; }
         .module-btn[data-module="general"] { border-color: rgba(255, 170, 0, 0.3); } .module-btn[data-module="general"]:hover { border-color: #ffaa00; box-shadow: 0 0 15px rgba(255, 170, 0, 0.4); transform: scale(1.02); z-index: 2;} .module-btn[data-module="general"] .module-icon { color: #ffaa00; text-shadow: 0 0 10px #ffaa00; }
 
-        .module-icon { font-size: clamp(2.5rem, 5vh, 4rem); margin-bottom: 0.5vh; transition: color 0.3s;}
-        .module-name { font-family: var(--font-modern); font-weight: 900; font-size: clamp(1rem, 1.8vw, 1.4rem); color: #fff; text-transform: uppercase; text-align: center;}
+        .module-icon { font-size: clamp(2rem, 5vh, 4rem); margin-bottom: 0.5vh;}
+        .module-name { font-family: var(--font-modern); font-weight: 900; font-size: clamp(0.9rem, 1.8vw, 1.2rem); color: #fff; text-transform: uppercase; text-align: center;}
         
         .battery-container { display: flex; gap: 2px; width: 85%; height: 2vh; min-height: 12px; border: 2px solid #555; border-radius: 4px; padding: 2px; margin-top: 1.5vh; background: rgba(0,0,0,0.6); transition: border-color 0.3s;}
         .battery-segment { flex: 1; background: rgba(255,255,255,0.1); border-radius: 1px; transition: all 0.3s; }
@@ -100,150 +98,121 @@
         .battery-container.completed-battery { border-color: var(--color-success); box-shadow: 0 0 15px rgba(57, 255, 20, 0.4); }
         .battery-container.completed-battery .battery-segment.filled { background: var(--color-success); box-shadow: 0 0 5px var(--color-success); }
         
-        .side-panel { flex: 0 0 250px; display: flex; flex-direction: column; gap: 1.5vh;}
-        .vault-panel, .arena-btn-panel { background: linear-gradient(180deg, var(--color-panel) 0%, #050a15 100%); border: 2px solid var(--theme-primary); border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 30px var(--theme-glow-dim), 0 0 20px var(--theme-glow-dim); padding: 2vh; transition: all 0.5s; cursor: pointer;}
-        .vault-icon { font-size: clamp(2.5rem, 4vh, 3.5rem); margin-bottom: 0.5vh; animation: float 3s infinite ease-in-out; }
+        .side-panel { flex: 1; display: flex; flex-direction: column; gap: 1.5vh; min-width: 250px;}
+        .vault-panel, .arena-btn-panel { background: linear-gradient(180deg, var(--color-panel) 0%, #050a15 100%); border: 2px solid var(--theme-primary); border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 30px var(--theme-glow-dim), 0 0 20px var(--theme-glow-dim); padding: 2vh; transition: all 0.5s; cursor: pointer; flex-grow: 1;}
+        .vault-icon { font-size: clamp(2rem, 4vh, 3.5rem); margin-bottom: 0.5vh; animation: float 3s infinite ease-in-out; }
         .vault-title { color: #fff; font-family: var(--font-modern); font-weight: bold; font-size: clamp(0.9rem, 1.2vw, 1.1rem); text-transform: uppercase; text-align: center; letter-spacing: 2px; }
-        .vault-amount { color: var(--color-success); font-family: var(--font-retro); font-size: clamp(1.5rem, 2.5vw, 2.2rem); font-weight: bold; text-shadow: 0 0 15px rgba(57, 255, 20, 0.5); margin-top: 0.5vh; text-align: center; line-height: 1;}
+        .vault-amount { color: var(--color-success); font-family: var(--font-retro); font-size: clamp(1.5rem, 3vw, 2.5rem); font-weight: bold; text-shadow: 0 0 15px rgba(57, 255, 20, 0.5); margin-top: 0.5vh; text-align: center; line-height: 1;}
         
-        .btn-arena { background: #ff003c; border-color: #ff003c; box-shadow: 0 0 15px rgba(255,0,60,0.5); width: 100%; font-size: 1.2rem; padding: 1.5vh;}
+        .btn-arena { background: #ff003c; border-color: #ff003c; box-shadow: 0 0 15px rgba(255,0,60,0.5); width: 100%; font-size: clamp(1rem, 2vw, 1.4rem); padding: 2vh;}
         .btn-arena:hover { background: #ff3366; box-shadow: 0 0 25px rgba(255,0,60,0.8); }
 
-        /* HALL OF FAME */
-        .hof-tabs { display: flex; gap: 1vw; margin-bottom: 2vh; flex-wrap: wrap; justify-content: center; }
-        .hof-tab { background: #111; color: #fff; border: 2px solid #555; padding: 1vh 2vw; border-radius: 5px; cursor: pointer; font-family: var(--font-modern); font-weight: bold; transition: all 0.3s; margin-bottom: 1vh;}
-        .hof-tab:hover { background: #222; border-color: var(--color-gold); }
+        .scrollable-content { flex-grow: 1; width: 100%; max-width: 1000px; overflow-y: auto; overflow-x: hidden; margin: 0 auto; padding-right: 5px; }
+        .scrollable-content::-webkit-scrollbar { width: 6px; } .scrollable-content::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 3px; }
+
+        .hof-tabs { display: flex; gap: 1vw; margin-bottom: 2vh; flex-wrap: wrap; justify-content: center; flex-shrink: 0;}
+        .hof-tab { background: #111; color: #fff; border: 2px solid #555; padding: 1vh 2vw; border-radius: 5px; cursor: pointer; font-family: var(--font-modern); font-weight: bold; transition: all 0.3s; margin-bottom: 1vh; font-size: clamp(0.8rem, 1.5vw, 1rem);}
         .hof-tab.active { border-color: var(--color-gold); background: rgba(255, 170, 0, 0.2); box-shadow: 0 0 15px rgba(255,170,0,0.5); color: var(--color-gold);}
         
-        .hof-list { display: flex; flex-direction: column; gap: 1vh; width: 100%; max-width: 800px; min-height: 400px; max-height: 60vh; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 2vh; border-radius: 10px; border: 1px solid #444;}
-        .hof-list::-webkit-scrollbar { width: 8px; } .hof-list::-webkit-scrollbar-thumb { background: var(--color-gold); border-radius: 4px; }
+        .hof-item { display: flex; justify-content: space-between; align-items: center; padding: 1.5vh 2vw; background: rgba(0,0,0,0.5); border: 1px solid #444; border-radius: 8px; transition: transform 0.2s; margin-bottom: 1vh;}
+        .hof-item.rank-1 { border-color: var(--color-gold); background: linear-gradient(90deg, rgba(255,170,0,0.1) 0%, transparent 100%);}
+        .hof-item.rank-2 { border-color: var(--color-silver); background: linear-gradient(90deg, rgba(192,192,192,0.1) 0%, transparent 100%);}
+        .hof-item.rank-3 { border-color: var(--color-bronze); background: linear-gradient(90deg, rgba(205,127,50,0.1) 0%, transparent 100%);}
         
-        .hof-item { display: flex; justify-content: space-between; align-items: center; padding: 1.5vh 2vw; background: rgba(255,255,255,0.05); border: 1px solid #333; border-radius: 8px; transition: transform 0.2s; flex-shrink: 0;}
-        .hof-item:hover { transform: translateX(5px); background: rgba(255,255,255,0.1); }
-        
-        .hof-item.rank-1 { border-color: var(--color-gold); box-shadow: inset 0 0 10px rgba(255,170,0,0.2), 0 0 15px rgba(255,170,0,0.4); background: linear-gradient(90deg, rgba(255,170,0,0.1) 0%, transparent 100%);}
-        .hof-item.rank-2 { border-color: var(--color-silver); box-shadow: inset 0 0 10px rgba(192,192,192,0.2), 0 0 10px rgba(192,192,192,0.4); background: linear-gradient(90deg, rgba(192,192,192,0.1) 0%, transparent 100%);}
-        .hof-item.rank-3 { border-color: var(--color-bronze); box-shadow: inset 0 0 10px rgba(205,127,50,0.2), 0 0 10px rgba(205,127,50,0.4); background: linear-gradient(90deg, rgba(205,127,50,0.1) 0%, transparent 100%);}
-        
-        .hof-rank-badge { font-family: var(--font-retro); font-size: 1.8rem; width: 40px; text-align: center; font-weight: bold;}
+        .hof-rank-badge { font-family: var(--font-retro); font-size: clamp(1.2rem, 2vw, 1.8rem); width: 40px; text-align: center; font-weight: bold;}
         .rank-1 .hof-rank-badge { color: var(--color-gold); text-shadow: 0 0 10px var(--color-gold); }
         .rank-2 .hof-rank-badge { color: var(--color-silver); text-shadow: 0 0 10px var(--color-silver); }
         .rank-3 .hof-rank-badge { color: var(--color-bronze); text-shadow: 0 0 10px var(--color-bronze); }
         
         .hof-player-info { flex-grow: 1; padding-left: 2vw; display: flex; flex-direction: column;}
-        .hof-name { font-family: var(--font-modern); font-weight: 900; font-size: 1.2rem; color: #fff;}
-        .hof-tag { font-size: 0.8rem; color: #888; font-family: var(--font-retro); }
-        .hof-score { font-family: var(--font-retro); font-size: 1.8rem; color: var(--color-success); font-weight: bold; text-shadow: 0 0 10px rgba(57,255,20,0.5);}
+        .hof-name { font-family: var(--font-modern); font-weight: 900; font-size: clamp(1rem, 2vw, 1.2rem); color: #fff;}
+        .hof-tag { font-size: clamp(0.7rem, 1.5vw, 0.8rem); color: #888; font-family: var(--font-retro); }
+        .hof-score { font-family: var(--font-retro); font-size: clamp(1.2rem, 2.5vw, 1.8rem); color: var(--color-success); font-weight: bold;}
 
-        /* ARENA LIST */
-        #arena-list { display: flex; flex-direction: column; gap: 1.5vh; width: 100%; max-width: 800px; min-height: 400px; max-height: 60vh; overflow-y: auto; background: rgba(0,0,0,0.5); border: 2px solid var(--theme-primary); border-radius: 10px; padding: 2vh;}
-        .online-player { display: flex; justify-content: space-between; align-items: center; background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.3); padding: 2vh 2vw; border-radius: 8px; transition: all 0.2s; flex-shrink: 0; }
-        .online-player:hover { background: rgba(0, 240, 255, 0.2); border-color: var(--theme-primary); transform: translateX(5px); }
+        .online-player { display: flex; justify-content: space-between; align-items: center; background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.3); padding: 2vh 2vw; border-radius: 8px; margin-bottom: 1vh;}
         .online-player.is-bot { border-color: rgba(255, 170, 0, 0.5); background: rgba(255, 170, 0, 0.1); }
         .online-info { display: flex; flex-direction: column; align-items: flex-start;}
-        .online-name { font-family: var(--font-retro); font-size: 2rem; color: #fff; letter-spacing: 2px;}
-        .online-gb { font-family: var(--font-modern); font-size: 1rem; color: var(--color-success); font-weight: bold; margin-top: 0.5vh;}
-        .btn-challenge { background: var(--color-error); border: 1px solid #ff003c; color: white; padding: 1.5vh 3vw; border-radius: 5px; font-family: var(--font-retro); font-size: 1.4rem; cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px rgba(255,0,60,0.5); transition: all 0.2s;}
-        .btn-challenge:hover { transform: scale(1.1); box-shadow: 0 0 20px rgba(255,0,60,0.8); }
+        .online-name { font-family: var(--font-retro); font-size: clamp(1.5rem, 3vw, 2rem); color: #fff; letter-spacing: 2px;}
+        .online-gb { font-family: var(--font-modern); font-size: clamp(0.8rem, 1.5vw, 1rem); color: var(--color-success); font-weight: bold; margin-top: 0.5vh;}
+        .btn-challenge { background: var(--color-error); border: 1px solid #ff003c; color: white; padding: 1.5vh 3vw; border-radius: 5px; font-family: var(--font-retro); font-size: clamp(1rem, 2vw, 1.4rem); cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px rgba(255,0,60,0.5); transition: all 0.2s;}
 
-        /* PANTALLA DUELO (CONTRA IA) */
-        #screen-duel { background: radial-gradient(circle at center, #3a000d 0%, #050000 100%); align-items: center;}
-        .duel-header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 2vh 5vw; border-bottom: 2px solid var(--color-error); background: rgba(0,0,0,0.8); box-shadow: 0 0 20px var(--color-error); position: sticky; top: 0; z-index: 10;}
-        .duel-vs { font-family: var(--font-retro); font-size: 4rem; color: var(--color-error); text-shadow: 0 0 20px var(--color-error); animation: pulse-correct 0.5s infinite;}
+        #screen-duel { background: radial-gradient(circle at center, #3a000d 0%, #050000 100%); justify-content: space-between;}
+        .duel-header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 1.5vh 5vw; border-bottom: 2px solid var(--color-error); background: rgba(0,0,0,0.8); box-shadow: 0 0 20px var(--color-error); flex-shrink: 0;}
+        .duel-vs { font-family: var(--font-retro); font-size: clamp(2.5rem, 5vw, 4rem); color: var(--color-error); text-shadow: 0 0 20px var(--color-error); animation: pulse-correct 0.5s infinite;}
         .duel-player { display: flex; flex-direction: column; align-items: center; width: 35%;}
-        .duel-name { font-family: var(--font-modern); font-weight: 900; font-size: 1.8rem; color: #fff; text-align: center;}
-        .duel-question-container { max-width: 1000px; width: 90%; margin: 2vh auto; display: flex; flex-direction: column; gap: 3vh; align-items: center; justify-content: center; flex-grow: 1; padding-bottom: 5vh;}
-        .duel-timer { font-family: var(--font-retro); font-size: 8rem; color: var(--color-gold); text-shadow: 0 0 40px #ffaa00; margin: 2vh 0; line-height: 1;}
+        .duel-name { font-family: var(--font-modern); font-weight: 900; font-size: clamp(1.2rem, 3vw, 1.8rem); color: #fff; text-align: center; text-overflow: ellipsis; overflow: hidden; max-width: 100%;}
+        .duel-question-container { max-width: 1000px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 2vh; align-items: center; justify-content: center; flex-grow: 1; padding: 2vh 0; overflow-y: auto;}
+        .duel-timer { font-family: var(--font-retro); font-size: clamp(5rem, 12vw, 8rem); color: var(--color-gold); text-shadow: 0 0 40px #ffaa00; line-height: 1;}
 
-        /* PANTALLA JUEGO (SOLO) Y CARTAS 3D */
-        #header-game { display: flex; justify-content: space-between; align-items: center; padding: 1.5vh 3vw; background: rgba(0, 10, 25, 0.95); border-bottom: 2px solid var(--theme-primary); box-shadow: 0 5px 20px var(--theme-glow-dim); z-index: 20; position: sticky; top: 0;}
-        .btn-exit { background: transparent; border: 1px solid var(--color-error); color: var(--color-error); font-family: var(--font-modern); font-weight: bold; padding: 1vh 2vw; border-radius: 5px; cursor: pointer; transition: all 0.2s; font-size: clamp(0.9rem, 1.5vw, 1.2rem); }
-        .btn-exit:hover { background: var(--color-error); color: #fff; box-shadow: 0 0 10px var(--color-error);}
+        #header-game { display: flex; justify-content: space-between; align-items: center; padding: 1.5vh 2vw; background: rgba(0, 10, 25, 0.95); border-bottom: 2px solid var(--theme-primary); box-shadow: 0 5px 20px var(--theme-glow-dim); flex-shrink: 0;}
+        .btn-exit { background: transparent; border: 1px solid var(--color-error); color: var(--color-error); font-family: var(--font-modern); font-weight: bold; padding: 1vh 2vw; border-radius: 5px; cursor: pointer; transition: all 0.2s; font-size: clamp(0.8rem, 1.5vw, 1rem); }
         .score-board { display: flex; align-items: center; gap: 1vw; }
-        .score-label { font-size: clamp(0.9rem, 1.5vw, 1.2rem); color: #aaa; text-transform: uppercase;}
-        .score-value { font-size: clamp(1.8rem, 3vw, 2.5rem); font-family: var(--font-retro); color: var(--color-success); font-weight: bold; text-shadow: 0 0 10px rgba(57, 255, 20, 0.5); }
-        .cards-left { font-size: clamp(1.2rem, 2vw, 1.8rem); font-family: var(--font-retro); color: var(--theme-primary); transition: color 0.5s;}
+        .score-value { font-size: clamp(1.2rem, 3vw, 2rem); font-family: var(--font-retro); color: var(--color-success); font-weight: bold; text-shadow: 0 0 10px rgba(57, 255, 20, 0.5); }
+        .cards-left { font-size: clamp(1rem, 2vw, 1.5rem); font-family: var(--font-retro); color: var(--theme-primary); }
 
-        #board-container { flex-grow: 1; padding: 3vh 2vw; display: flex; justify-content: center; align-items: flex-start; overflow-y: auto; perspective: 1500px; width: 100%;}
-        #grid-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2vh 2vw; width: 100%; max-width: 1400px; padding-bottom: 5vh; }
+        #board-container { flex-grow: 1; padding: 2vh; display: flex; justify-content: center; align-items: flex-start; overflow-y: auto; width: 100%;}
+        #grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 2vh 1.5vw; width: 100%; max-width: 1200px; align-content: start;}
 
-        .card { perspective: 1000px; cursor: pointer; width: 100%; aspect-ratio: 3/4; animation: float 4s ease-in-out infinite; min-height: 120px;}
-        .card:nth-child(2n) { animation-delay: 0.5s; } .card:nth-child(3n) { animation-delay: 1s; } .card:nth-child(5n) { animation-delay: 1.5s; }
+        .card { perspective: 1000px; cursor: pointer; width: 100%; aspect-ratio: 3/4; animation: float 4s ease-in-out infinite; min-height: 120px; max-height: 200px;}
+        .card:nth-child(2n) { animation-delay: 0.5s; } .card:nth-child(3n) { animation-delay: 1s; }
         .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; }
         .card.revealed .card-inner { transform: rotateY(180deg); }
-        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 8px; border: 2px solid; box-shadow: 0 4px 8px rgba(0,0,0,0.5); overflow: hidden; }
-        .card-front { background: linear-gradient(135deg, var(--color-panel) 0%, #0d1b3e 100%); border-color: var(--theme-glow); color: var(--theme-primary); transition: all 0.3s; }
-        .card-front::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(0deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 10px 10px; z-index: 1; pointer-events: none; }
-        .card-front:hover { background: linear-gradient(135deg, #0d1b3e 0%, #162a5e 100%); border-color: var(--theme-primary); transform: translateY(-5px) scale(1.05); box-shadow: 0 0 25px var(--theme-glow); z-index: 10;}
-        .card-number { font-size: clamp(3rem, 10vh, 6rem); font-family: var(--font-retro); font-weight: bold; z-index: 2; text-shadow: 0 0 20px var(--theme-glow); transition: text-shadow 0.5s;}
+        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 8px; border: 2px solid; box-shadow: 0 4px 8px rgba(0,0,0,0.5); overflow: hidden; }
+        .card-front { background: linear-gradient(135deg, var(--color-panel) 0%, #0d1b3e 100%); border-color: var(--theme-glow); color: var(--theme-primary); }
+        .card-front:hover { background: linear-gradient(135deg, #0d1b3e 0%, #162a5e 100%); border-color: var(--theme-primary); transform: translateY(-5px) scale(1.05); }
+        .card-number { font-size: clamp(2rem, 8vw, 4rem); font-family: var(--font-retro); font-weight: bold; z-index: 2;}
         .card-back { background: #050a15; transform: rotateY(180deg); font-family: var(--font-retro); }
         .card.state-won .card-back { background: radial-gradient(circle, #0a2e12 0%, #031205 100%); border-color: var(--color-success); color: var(--color-success); }
         .card.state-lost .card-back { background: radial-gradient(circle, #3e0a15 0%, #150307 100%); border-color: var(--color-error); color: var(--color-error); }
-        .card-prize { font-size: clamp(1.5rem, 3.5vh, 3rem); font-weight: bold; text-shadow: 0 0 10px currentColor; z-index: 2;}
-        .card-status-icon { margin-top: 10px; z-index: 2; font-size: clamp(2.5rem, 5vh, 4rem); display: flex; justify-content: center; align-items: center;}
+        .card-prize { font-size: clamp(1rem, 3vw, 2rem); font-weight: bold;}
+        .card-status-icon { margin-top: 5px; font-size: clamp(1.5rem, 4vw, 3rem);}
 
-        /* MODALES */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 5, 10, 0.95); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 2vh; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(2, 5, 10, 0.95); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 2vh; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal-content { background: linear-gradient(180deg, var(--color-panel) 0%, #050a15 100%); border: 2px solid var(--theme-primary); border-radius: 12px; width: 100%; max-width: 1100px; padding: 4vh 3vw; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9); transform: scale(0.9); transition: transform 0.3s, border-color 0.5s; display: flex; flex-direction: column; gap: 3vh; max-height: 95vh; overflow-y: auto;}
-        .modal-content::-webkit-scrollbar { width: 8px; } .modal-content::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 4px; }
+        .modal-content { background: linear-gradient(180deg, var(--color-panel) 0%, #050a15 100%); border: 2px solid var(--theme-primary); border-radius: 12px; width: 100%; max-width: 1000px; padding: 3vh 3vw; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9); transform: scale(0.9); transition: transform 0.3s; display: flex; flex-direction: column; gap: 2vh; max-height: 90dvh; overflow-y: auto;}
+        .modal-content::-webkit-scrollbar { width: 6px; } .modal-content::-webkit-scrollbar-thumb { background: var(--theme-primary); border-radius: 3px; }
         .modal-overlay.active .modal-content { transform: scale(1); }
 
-        .modal-header { display: flex; flex-direction: column; align-items: center; transition: all 0.3s ease; }
-        .prize-alert { font-size: clamp(1.2rem, 2vw, 1.5rem); color: var(--theme-primary); text-transform: uppercase; letter-spacing: 2px; transition: color 0.5s;}
-        .prize-amount { font-size: clamp(3rem, 6vw, 5rem); font-family: var(--font-retro); color: #fff; font-weight: bold; text-shadow: 0 0 15px var(--theme-primary); line-height: 1; transition: color 0.3s, text-shadow 0.3s;}
-        .question-text { font-size: clamp(1.6rem, 3.5vw, 2.8rem); font-weight: 700; margin: 2vh 0; line-height: 1.3; color: #fff;}
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(90px, auto); gap: 2vh 2vw; width: 100%;}
-        .option-btn { background: var(--theme-glow-dim); border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 2vh 2vw; font-size: clamp(1.2rem, 2.2vw, 1.8rem); font-family: var(--font-modern); font-weight: bold; color: #ddd; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; justify-content: flex-start; width: 100%; box-sizing: border-box; }
-        .option-btn::before { content: attr(data-letter) ":"; color: var(--theme-primary); margin-right: 15px; font-size: 1.8rem; font-weight: 900; transition: color 0.5s;}
-        .option-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--theme-primary); color: #fff; transform: scale(1.02); box-shadow: 0 0 15px var(--theme-glow);}
-        .option-btn.selected-correct { background: rgba(57, 255, 20, 0.9) !important; border-color: var(--color-success) !important; color: #000 !important; animation: pulse-correct 0.5s; box-shadow: 0 0 30px rgba(57,255,20,0.8);}
-        .option-btn.selected-wrong { background: rgba(255, 0, 60, 0.9) !important; border-color: var(--color-error) !important; color: #FFF !important; animation: shake-wrong 0.4s; box-shadow: 0 0 30px rgba(255,0,60,0.8);}
+        .prize-amount { font-size: clamp(2.5rem, 6vw, 4rem); font-family: var(--font-retro); color: #fff; font-weight: bold; text-shadow: 0 0 15px var(--theme-primary); line-height: 1; }
+        .question-text { font-size: clamp(1.2rem, 3vw, 2.2rem); font-weight: 700; margin: 1vh 0; line-height: 1.3; color: #fff;}
+        
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5vh; width: 100%;}
+        .option-btn { background: var(--theme-glow-dim); border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 1.5vh 2vw; font-size: clamp(1rem, 2vw, 1.4rem); font-family: var(--font-modern); font-weight: bold; color: #ddd; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center;}
+        .option-btn::before { content: attr(data-letter) ":"; color: var(--theme-primary); margin-right: 10px; font-size: 1.5rem; font-weight: 900;}
+        .option-btn.selected-correct { background: rgba(57, 255, 20, 0.9) !important; border-color: var(--color-success) !important; color: #000 !important; animation: pulse-correct 0.5s; }
+        .option-btn.selected-wrong { background: rgba(255, 0, 60, 0.9) !important; border-color: var(--color-error) !important; color: #FFF !important; animation: shake-wrong 0.4s; }
         .option-btn.reveal-correct { background: rgba(57, 255, 20, 0.9); border-color: var(--color-success); color: #000; }
 
-        /* EFECTO APOTEÓSICO AL RESPONDER BIEN/MAL */
         .floating-feedback { position: fixed; font-family: var(--font-modern); font-weight: 900; text-transform: uppercase; pointer-events: none; z-index: 10001; white-space: nowrap; letter-spacing: 3px; }
         .floating-feedback.apotheotic { animation: apotheosis 3s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
         
         @keyframes apotheosis {
-            0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; text-shadow: 0 0 0px transparent; }
+            0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; }
             10% { transform: translate(-50%, -50%) scale(1); opacity: 1; text-shadow: 0 0 10px currentColor; }
-            40% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(2.5); opacity: 1; text-shadow: 0 0 40px currentColor, 0 0 80px currentColor; }
-            80% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(3); opacity: 1; text-shadow: 0 0 60px currentColor, 0 0 100px currentColor; }
-            100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(4); opacity: 0; filter: blur(20px); }
+            40% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(2); opacity: 1; text-shadow: 0 0 40px currentColor; }
+            80% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(2.5); opacity: 1; text-shadow: 0 0 60px currentColor; }
+            100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(3); opacity: 0; filter: blur(20px); }
         }
-
-        .floating-feedback.success { color: var(--color-success); }
-        .floating-feedback.error { color: var(--color-error); }
+        .floating-feedback.success { color: var(--color-success); } .floating-feedback.error { color: var(--color-error); }
 
         @keyframes pulse-correct { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
         @keyframes shake-wrong { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-        /* RESPONSIVE AJUSTADO AL SCROLL */
+        .correct-answer-box { background: rgba(255,255,255,0.1); border: 1px dashed var(--color-gold); color: var(--color-gold); padding: 10px; border-radius: 5px; font-size: 1.2rem; margin-top: 10px; display: none; font-weight: bold;}
+
         @media (max-width: 900px) {
-            .modules-layout, .player-container { flex-direction: column; align-items: center; }
-            .side-panel { flex-direction: row; width: 100%; flex-wrap: wrap; justify-content: center; }
-            .vault-panel, .arena-btn-panel { flex: 1; min-width: 140px; }
+            .modules-layout, .player-container { flex-direction: column; overflow-y: auto; }
+            .side-panel { flex-direction: row; flex-wrap: wrap; }
             .options-grid { grid-template-columns: 1fr; }
-            #grid-cards { grid-template-columns: repeat(4, 1fr); }
-            .duel-header { flex-direction: column; gap: 2vh; text-align: center; }
-            .duel-vs { font-size: 3rem; }
-            .duel-player { width: 100%; }
+            #grid-cards { grid-template-columns: repeat(3, 1fr); }
+            .duel-vs { font-size: 2.5rem; }
         }
-        @media (max-width: 600px) {
-            #grid-cards { grid-template-columns: repeat(3, 1fr); gap: 1.5vh; }
-            .card-number { font-size: 3rem; }
-            .card-prize { font-size: 1.2rem; }
-            #header-game { flex-direction: column; gap: 1vh; align-items: stretch; }
-            .score-board, .cards-left { justify-content: center; }
-            @keyframes apotheosis {
-                0% { transform: translate(-50%, -50%) scale(0.1); opacity: 0; }
-                10% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-                40% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.5); opacity: 1; }
-                80% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.8); opacity: 1; }
-                100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(2.5); opacity: 0; filter: blur(10px); }
-            }
+        @media (max-width: 500px) {
+            #grid-cards { grid-template-columns: repeat(3, 1fr); gap: 1vh;}
+            #header-game { flex-direction: column; gap: 1vh;}
+            .card-number { font-size: 2rem; }
+            .card-prize { font-size: 0.9rem; }
         }
     </style>
 </head>
@@ -251,39 +220,40 @@
 
     <div id="network-status" class="status-offline">📡 INICIANDO SISTEMA...</div>
     <div id="error-flash"></div>
+    <div id="hack-flash"></div>
 
     <div id="app-container">
         <!-- WELCOME -->
         <div id="screen-welcome" class="screen menu-screen">
             <h1 class="title-main">LA RED<br>OMNI-VERSAL</h1>
-            <h2 class="title-sub">Enlace de Red: V20.0 (Cloud Firestore & Delete)</h2>
-            <button class="btn-action" id="btn-goto-players" onclick="window.navToPlayers()">Conectar al Sistema</button>
+            <h2 class="title-sub">Enlace: V22.0 (40Qs + Anti-Repeat Shuffle)</h2>
+            <button class="btn-action" id="btn-goto-players" onclick="window.navToPlayers()">Conectar y Expandir</button>
         </div>
 
         <!-- JUGADORES Y TECLADO -->
         <div id="screen-players" class="screen menu-screen hidden">
-            <h1 class="title-main" style="font-size: clamp(2.5rem, 5vw, 4rem);">IDENTIFICACIÓN</h1>
-            <h2 class="title-sub" style="margin-bottom: 2vh;">Ingresa tu alias para guardar progreso</h2>
+            <h1 class="title-main" style="font-size: clamp(2rem, 4vw, 3rem); margin-bottom:0;">IDENTIFICACIÓN</h1>
+            <h2 class="title-sub" style="margin-bottom: 2vh;">Ingresa tu alias para sincronizar</h2>
             
             <div class="player-container">
                 <div class="keyboard-panel">
                     <input type="text" id="player-input" placeholder="TU ALIAS AQUÍ" readonly>
                     <div class="keyboard" id="virtual-keyboard"></div>
-                    <button class="btn-action" id="btn-save-player" onclick="window.saveInputPlayer()" style="width: 100%; padding: 2vh; font-size: 1.4rem;">Crear / Cargar Perfil</button>
+                    <button class="btn-action" id="btn-save-player" onclick="window.saveInputPlayer()" style="width: 100%; padding: 1.5vh; font-size: 1.2rem;">Crear / Cargar Perfil</button>
                 </div>
                 
                 <div class="saved-players-panel">
-                    <h3>PERFILES DISPONIBLES</h3>
+                    <h3>PERFILES DE RED</h3>
                     <div class="player-list" id="player-list-container"></div>
                 </div>
             </div>
-            <button class="btn-action" id="btn-back-welcome" onclick="window.navToWelcome()" style="margin-top: 3vh; font-size: 1.2rem; padding: 1.5vh 3vw; background: #333; border-color: #555;">← Volver</button>
+            <button class="btn-action" onclick="window.navToWelcome()" style="margin-top: 2vh; font-size: 1rem; padding: 1vh 2vw; background: #333; border-color: #555;">← Volver</button>
         </div>
 
         <!-- MÓDULOS -->
-        <div id="screen-modules" class="screen menu-screen hidden">
-            <h1 class="title-main" style="font-size: clamp(2.5rem, 5vw, 4rem); margin-bottom: 0;">MENÚ PRINCIPAL</h1>
-            <h2 class="title-sub" id="welcome-player-text" style="margin-bottom: 3vh;">Bienvenido. Selecciona tu disciplina.</h2>
+        <div id="screen-modules" class="screen menu-screen hidden" style="padding-top: 1vh;">
+            <h1 class="title-main" style="font-size: clamp(2rem, 4vw, 3rem); margin-bottom: 0;">MENÚ PRINCIPAL</h1>
+            <h2 class="title-sub" id="welcome-player-text" style="margin-bottom: 2vh;">Bienvenido.</h2>
             
             <div class="modules-layout">
                 <div class="modules-grid">
@@ -294,17 +264,17 @@
                     </div>
                     <div class="module-btn" data-module="calculos" onclick="window.initSoloGame('calculos')">
                         <div class="module-icon">🧮</div>
-                        <div class="module-name" style="color:#39ff14">Cálculos Matemáticos</div>
+                        <div class="module-name" style="color:#39ff14">Cálculos</div>
                         <div class="battery-container" id="prog-calculos"></div>
                     </div>
                     <div class="module-btn" data-module="palabras" onclick="window.initSoloGame('palabras')">
                         <div class="module-icon">📖</div>
-                        <div class="module-name" style="color:#ff00ff">Lenguaje y Palabras</div>
+                        <div class="module-name" style="color:#ff00ff">Lenguaje</div>
                         <div class="battery-container" id="prog-palabras"></div>
                     </div>
                     <div class="module-btn" data-module="general" onclick="window.initSoloGame('general')">
                         <div class="module-icon">🌍</div>
-                        <div class="module-name" style="color:#ffaa00">Conocimiento General</div>
+                        <div class="module-name" style="color:#ffaa00">General</div>
                         <div class="battery-container" id="prog-general"></div>
                     </div>
                 </div>
@@ -312,242 +282,292 @@
                 <div class="side-panel">
                     <div class="vault-panel">
                         <div class="vault-icon">🏦</div>
-                        <div style="display: flex; flex-direction: column; align-items: center;">
-                            <div class="vault-title" id="vault-title-ui">Almacenamiento</div>
-                            <div class="vault-amount" id="ui-vault-total">0 GB</div>
-                        </div>
+                        <div class="vault-title" id="vault-title-ui">Almacenamiento</div>
+                        <div class="vault-amount" id="ui-vault-total">0 GB</div>
                     </div>
                     <div class="vault-panel" onclick="window.initHoF()" style="cursor: pointer; border-color: var(--color-gold);">
                         <div class="vault-icon" style="color: var(--color-gold); text-shadow: 0 0 15px var(--color-gold);">🏆</div>
                         <div class="vault-title" style="color: var(--color-gold);">HALL OF FAME</div>
                     </div>
-                    <div class="arena-btn-panel">
-                        <button class="btn-action btn-arena" onclick="window.initBotArena()" style="margin-top:0;">⚔️ BATTLE ARENA</button>
+                    <div class="arena-btn-panel" style="padding:0; border:none; box-shadow:none; background:transparent;">
+                        <button class="btn-action btn-arena" onclick="window.initBotArena()" style="margin:0; height:100%;">⚔️ BATTLE ARENA (PvP)</button>
                     </div>
                 </div>
             </div>
             
-            <button class="btn-action" onclick="window.navToPlayers(true)" style="margin-top: 4vh; font-size: 1.2rem; padding: 1.5vh 3vw; background: #333; border-color: #555;">← Cambiar Operador</button>
+            <button class="btn-action" onclick="window.navToPlayers(true)" style="margin-top: 1vh; font-size: 1rem; padding: 1vh 2vw; background: #333; border-color: #555; flex-shrink:0;">← Cambiar Operador</button>
         </div>
 
         <!-- HALL OF FAME -->
         <div id="screen-hof" class="screen menu-screen hidden">
             <h1 class="title-main" style="color:var(--color-gold); text-shadow: 0 0 20px rgba(255,170,0,0.5);">SALÓN DE LA FAMA</h1>
-            <h2 class="title-sub">Los mejores operadores del Sistema (Haz Scroll para ver más)</h2>
-            
             <div class="hof-tabs">
-                <button class="hof-tab active" data-hoftab="global" onclick="window.renderHoF('global')">GLOBAL (Bóveda)</button>
-                <button class="hof-tab" data-hoftab="informatica" onclick="window.renderHoF('informatica')">INFORMÁTICA</button>
-                <button class="hof-tab" data-hoftab="calculos" onclick="window.renderHoF('calculos')">CÁLCULOS</button>
-                <button class="hof-tab" data-hoftab="palabras" onclick="window.renderHoF('palabras')">PALABRAS</button>
-                <button class="hof-tab" data-hoftab="general" onclick="window.renderHoF('general')">GENERAL</button>
+                <button class="hof-tab active" data-hoftab="global" onclick="window.renderHoF('global')">GLOBAL</button>
+                <button class="hof-tab" data-hoftab="informatica" onclick="window.renderHoF('informatica')">INFO</button>
+                <button class="hof-tab" data-hoftab="calculos" onclick="window.renderHoF('calculos')">CÁLC.</button>
+                <button class="hof-tab" data-hoftab="palabras" onclick="window.renderHoF('palabras')">PALAB.</button>
+                <button class="hof-tab" data-hoftab="general" onclick="window.renderHoF('general')">GEN.</button>
             </div>
-
-            <div class="hof-list" id="hof-list-container"></div>
-            
-            <button class="btn-action" onclick="window.navToModules()" style="margin-top: 3vh; font-size: 1.2rem; padding: 1.5vh 3vw; background: #333; border-color: #555;">← Volver al Menú</button>
+            <div class="scrollable-content" id="hof-list-container"></div>
+            <button class="btn-action" onclick="window.navToModules()" style="margin-top: 2vh; background: #333; border-color: #555;">← Volver</button>
         </div>
 
         <!-- JUEGO SOLO -->
-        <div id="screen-game" class="screen hidden">
+        <div id="screen-game" class="screen hidden" style="padding:0;">
             <header id="header-game">
-                <button class="btn-exit" onclick="window.exitGame()">← SALIR AL MENÚ</button>
+                <button class="btn-exit" onclick="window.exitGame()">← SALIR</button>
                 <div class="score-board">
-                    <span class="score-label">Recolectado:</span>
                     <span class="score-value" id="ui-score">0 GB</span>
                 </div>
-                <div class="cards-left">
-                    Progreso: <span id="ui-cards-left">0/20</span>
-                </div>
+                <div class="cards-left">Progreso: <span id="ui-cards-left">0/20</span></div>
             </header>
             <div id="board-container">
                 <div id="grid-cards"></div>
             </div>
         </div>
 
-        <!-- RESULTADOS (FIN MÓDULO) -->
+        <!-- RESULTADOS -->
         <div id="screen-end" class="screen menu-screen hidden">
             <div class="end-trophy" style="font-size: 8rem;">🏆</div>
-            <h1 class="title-main" style="font-size: clamp(3rem, 6vw, 5rem);">MÓDULO COMPLETADO</h1>
-            <h2 class="title-sub" style="color: #FFF;" id="end-sync-msg">Progreso asegurado.</h2>
-            <div class="end-total" id="ui-final-score" style="font-size: 5rem; color: var(--color-success); font-family: var(--font-retro); text-shadow: 0 0 30px rgba(57,255,20,0.5); margin: 3vh 0;">0 GB</div>
-            <button class="btn-action" onclick="window.navToModules()">Volver al Menú</button>
+            <h1 class="title-main">MÓDULO COMPLETADO</h1>
+            <div class="end-total" id="ui-final-score" style="font-size: clamp(3rem, 8vw, 5rem); color: var(--color-success); font-family: var(--font-retro); text-shadow: 0 0 30px rgba(57,255,20,0.5); margin: 3vh 0;">0 GB</div>
+            <button class="btn-action" onclick="window.navToModules()">Continuar</button>
         </div>
 
-        <!-- ARENA MULTIJUGADOR (SELECCIÓN) -->
+        <!-- ARENA MULTIJUGADOR -->
         <div id="screen-arena" class="screen menu-screen hidden">
-            <h1 class="title-main" style="color:var(--color-error); text-shadow: 0 0 20px rgba(255,0,60,0.5);" id="arena-title-ui">ARENA OMNI-VERSAL</h1>
-            <h2 class="title-sub" id="arena-sub-ui">Elige a un oponente. Muerte Súbita activada.</h2>
-            <div id="arena-list"></div>
-            <button class="btn-action" onclick="window.navToModules()" style="margin-top: 3vh; font-size: 1.2rem; padding: 1.5vh 3vw; background: #333; border-color: #555;">← Volver al Menú</button>
+            <h1 class="title-main" style="color:var(--color-error); text-shadow: 0 0 20px rgba(255,0,60,0.5);">ARENA OMNI-VERSAL</h1>
+            <h2 class="title-sub" id="arena-sub-ui">Elige una víctima. Si ganas, le robas en tiempo real.</h2>
+            <div class="scrollable-content" id="arena-list" style="border: 2px solid var(--theme-primary); border-radius: 10px; padding: 2vh; background: rgba(0,0,0,0.5);"></div>
+            <button class="btn-action" onclick="window.navToModules()" style="margin-top: 2vh; background: #333; border-color: #555;">← Volver</button>
         </div>
 
-        <!-- DUELO CONTRA IA -->
-        <div id="screen-duel" class="screen hidden">
+        <!-- DUELO (PVP Y BOT) -->
+        <div id="screen-duel" class="screen hidden" style="padding:0;">
             <div class="duel-header">
-                <div class="duel-player">
-                    <span style="color:#aaa; font-size:1rem; letter-spacing: 2px;">OPERADOR</span>
-                    <span class="duel-name" id="duel-p1-name" style="color: var(--theme-primary); text-shadow: 0 0 15px var(--theme-primary);">TÚ</span>
-                </div>
+                <div class="duel-player"><span class="duel-name" id="duel-p1-name" style="color: var(--theme-primary);">TÚ</span></div>
                 <div class="duel-vs">VS</div>
-                <div class="duel-player">
-                    <span style="color:#aaa; font-size:1rem; letter-spacing: 2px;">IA ENEMIGA</span>
-                    <span class="duel-name" id="duel-p2-name" style="color: var(--color-gold); text-shadow: 0 0 15px var(--color-gold);">BOT</span>
-                </div>
+                <div class="duel-player"><span class="duel-name" id="duel-p2-name" style="color: var(--color-gold);">ENEMIGO</span></div>
             </div>
             <div class="duel-question-container">
                 <div class="duel-timer" id="duel-timer">10.0</div>
-                <div style="font-size: 1.5rem; color:var(--theme-primary); text-transform: uppercase; letter-spacing: 3px;" id="duel-topic-label">TEMA ALEATORIO</div>
-                <div class="question-text" id="duel-question" style="font-size: clamp(2rem, 4.5vw, 3.5rem); text-align: center;">Cargando hack...</div>
-                <div class="options-grid" id="duel-options"></div>
+                <div style="font-size: 1.2rem; color:var(--theme-primary); letter-spacing: 2px;" id="duel-topic-label">TEMA</div>
+                <div class="question-text" id="duel-question" style="text-align: center; padding: 0 2vw;">Cargando...</div>
+                <div class="options-grid" id="duel-options" style="max-width: 800px; padding: 0 2vw;"></div>
             </div>
         </div>
 
         <!-- MODALES DE JUEGO (CARTAS) -->
         <div id="modal-overlay" class="modal-overlay">
             <div id="modal-content" class="modal-content">
-                <div class="modal-header">
-                    <span class="prize-alert">Extrayendo datos por</span>
-                    <span class="prize-amount" id="modal-prize">0 GB</span>
-                </div>
-                <div class="question-text" id="modal-question">¿Cargando datos...?</div>
+                <div class="prize-amount" id="modal-prize" style="color: var(--theme-primary);">0 GB</div>
+                <div class="question-text" id="modal-question">?</div>
                 <div class="options-grid" id="modal-options"></div>
             </div>
         </div>
 
         <!-- RESULTADO DEL DUELO -->
         <div id="modal-duel-result" class="modal-overlay">
-            <div class="modal-content" style="max-width: 700px; text-align: center; border-width: 4px;">
-                <div style="font-size: 8rem; margin-bottom: 2vh;" id="mdr-icon">🏆</div>
-                <h2 class="title-main" id="mdr-title" style="font-size: 4rem;">¡VICTORIA!</h2>
-                <div class="question-text" id="mdr-msg" style="font-size: 2rem;">Has robado 1,000 GB.</div>
-                <button class="btn-action" onclick="window.closeDuelResult()" style="margin-top: 4vh; font-size: 1.5rem;">Abandonar Arena</button>
+            <div class="modal-content" style="max-width: 600px; border-width: 4px;">
+                <div style="font-size: 6rem; margin-bottom: 1vh;" id="mdr-icon">🏆</div>
+                <h2 class="title-main" id="mdr-title" style="font-size: 3rem;">¡VICTORIA!</h2>
+                <div class="question-text" id="mdr-msg" style="font-size: 1.5rem;">Resultado...</div>
+                <div id="mdr-correct-answer" class="correct-answer-box"></div>
+                <button class="btn-action" onclick="window.closeDuelResult()" style="margin-top: 3vh;">Continuar</button>
             </div>
         </div>
 
-        <!-- CONFIRMAR ELIMINAR JUGADOR -->
+        <!-- CONFIRMAR ELIMINAR -->
         <div id="modal-confirm" class="modal-overlay">
-            <div class="modal-content" style="max-width: 600px; padding: 5vh 4vw;">
-                <h2 class="title-main" style="font-size: 2.5rem; color: var(--color-error); text-shadow: 0 0 15px var(--color-error);">¿ELIMINAR OPERADOR?</h2>
-                <p style="font-size: 1.5rem; color: #fff; margin-bottom: 4vh;" id="confirm-msg"></p>
+            <div class="modal-content" style="max-width: 500px;">
+                <h2 class="title-main" style="font-size: 2rem; color: var(--color-error);">¿ELIMINAR?</h2>
+                <p style="font-size: 1.2rem; color: #fff; margin-bottom: 3vh;" id="confirm-msg"></p>
                 <div style="display: flex; gap: 2vw; justify-content: center;">
-                    <button class="btn-action" onclick="window.confirmDeleteYes()" style="background: var(--color-error); border-color: var(--color-error);">SÍ, ELIMINAR</button>
-                    <button class="btn-action" onclick="window.confirmDeleteNo()" style="background: #333; border-color: #555;">CANCELAR</button>
+                    <button class="btn-action" onclick="window.confirmDeleteYes()" style="background: var(--color-error); border-color: var(--color-error);">SÍ</button>
+                    <button class="btn-action" onclick="window.confirmDeleteNo()" style="background: #333; border-color: #555;">NO</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MÓDULO JS CON FIREBASE CLOUD FIRESTORE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const SUCCESS_WORDS = ["¡GENIAL!", "¡ESTUPENDO!", "¡EXCELENTE!", "¡PERFECTO!", "¡MAGNÍFICO!", "¡ÉPICO!", "¡IMPECABLE!", "¡BRUTAL!"];
-        const ERROR_WORDS = ["¡UPS!", "¡ERROR!", "¡INCORRECTO!", "¡FALLASTE!", "¡LÁSTIMA!", "¡CATASTROFE!", "¡SISTEMA CAÍDO!"];
+        function forceLayout() {
+            try { if(document.documentElement.requestFullscreen && !document.fullscreenElement) { document.documentElement.requestFullscreen().catch(()=>{}); } } catch(e) {}
+            document.body.style.height = window.innerHeight + 'px';
+        }
+        window.addEventListener('resize', () => { document.body.style.height = window.innerHeight + 'px'; });
+
+        // FISHER-YATES SHUFFLE PROFESIONAL (Evita que la respuesta correcta caiga siempre en A)
+        function shuffleFisherYates(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        const SUCCESS_WORDS = ["¡PERFECTO!", "¡MAGNÍFICO!", "¡ÉPICO!", "¡IMPECABLE!", "¡BRUTAL!"];
+        const ERROR_WORDS = ["¡ERROR!", "¡INCORRECTO!", "¡FALLASTE!", "¡CATASTROFE!"];
         const PRIZES_POOL = [10, 20, 30, 50, 100, 150, 200, 250, 300, 500, 750, 1000, 1500, 2000, 2500, 5000, 7500, 10000, 50000, 100000];
 
-        // DATOS MASIVOS
+        // BASE DE DATOS MASIVA (40 PREGUNTAS POR CATEGORÍA)
         const DB_MODULES = {
             informatica: [
                 { q: "¿Qué significa CPU?", c: "Unidad Central de Procesamiento", d: ["Carga de Proceso Unificado", "Controlador de Punto Único", "Centro de Poder Universal"] },
-                { q: "¿Qué es el Software?", c: "Los programas y aplicaciones lógicas.", d: ["Los componentes físicos de la PC.", "Los cables de red y corriente.", "El teclado y el ratón inalámbrico."] },
-                { q: "¿Qué es el Hardware?", c: "Las partes físicas tangibles del equipo.", d: ["Los programas y videojuegos preinstalados.", "Los virus malignos de la red.", "El sistema operativo principal."] },
-                { q: "¿Qué es la Huella Digital en internet?", c: "El rastro de datos que dejamos al navegar.", d: ["El botón físico para encender el celular.", "La marca que deja tu dedo en la pantalla.", "Una forma de imprimir rápido un texto."] },
-                { q: "¿Cuál es el lenguaje base estructural de la web?", c: "HTML", d: ["Python", "C++", "Assembly"] },
-                { q: "¿Qué significa 'RAM'?", c: "Random Access Memory", d: ["Read Access Module", "Run And Move", "Rapid Action Memory"] },
-                { q: "¿Para qué sirve una dirección IP?", c: "Identifica un dispositivo en una red.", d: ["Mide la velocidad del internet.", "Protege contra virus.", "Almacena fotos en la nube."] },
-                { q: "¿Qué es un 'Sistema Operativo'?", c: "Software base que administra hardware.", d: ["Un tipo de procesador.", "Un programa para editar fotos.", "Un antivirus famoso."] },
-                { q: "¿Quiénes fundaron Microsoft?", c: "Bill Gates y Paul Allen", d: ["Steve Jobs y Wozniak", "Mark Zuckerberg", "Elon Musk y Bezos"] },
-                { q: "¿Qué significa HTTP?", c: "HyperText Transfer Protocol", d: ["High Transfer Technology", "Hyper Terminal Text", "Host To Text Protocol"] },
-                { q: "¿Qué componente almacena los datos permanentemente?", c: "Disco Duro / Unidad SSD", d: ["Memoria RAM dinámica", "Tarjeta de Video", "Placa Base"] },
-                { q: "¿Qué es un algoritmo en programación?", c: "Una serie de instrucciones paso a paso.", d: ["Un virus destructivo.", "Un cable de fibra óptica.", "Un lenguaje extinto."] },
-                { q: "¿Qué tecla se usa comúnmente para recargar una página?", c: "F5", d: ["F1", "Ctrl + R", "Alt + F4"] },
-                { q: "¿Qué es el 'Phishing'?", c: "Un método fraudulento para robar contraseñas.", d: ["Un programa para pescar.", "Una técnica para acelerar tu PC.", "Un sistema seguro de copias."] },
-                { q: "¿Qué hace la combinación de teclas Ctrl + Z?", c: "Deshace la última acción.", d: ["Copia el texto.", "Pega el texto copiado.", "Cierra la ventana."] },
-                { q: "¿Cuál de estos es un 'Navegador Web'?", c: "Google Chrome", d: ["Windows 10", "Microsoft Excel", "Adobe Photoshop"] },
-                { q: "¿Qué significa Wi-Fi?", c: "Wireless Fidelity", d: ["Wide Frequency", "Wire Fire Connection", "Window Finder System"] },
-                { q: "¿Para qué sirve exactamente un Router?", c: "Distribuye la conexión a varios dispositivos.", d: ["Enfría el procesador.", "Imprime documentos.", "Genera electricidad."] },
-                { q: "¿Qué es la famosa 'Nube' (Cloud)?", c: "Servidores externos en internet para guardar datos.", d: ["El clima simulado.", "Una memoria USB blanca.", "Una pantalla curva."] },
-                { q: "¿Qué sistema operativo utiliza un iPhone?", c: "iOS", d: ["Android", "Windows Mobile", "Symbian OS"] },
-                { q: "¿Qué es el 'Malware'?", c: "Software diseñado para causar daño.", d: ["Programa para comprar ropa.", "Sistema que repara discos.", "Un juego multijugador."] },
-                { q: "¿Qué función cumple la Tarjeta Madre?", c: "Conecta y comunica los componentes.", d: ["Da energía al monitor.", "Guarda fotos familiares.", "Emite señal Wi-Fi."] },
-                { q: "¿Qué significa la 'S' en HTTPS?", c: "Secure (Seguro)", d: ["System (Sistema)", "Server (Servidor)", "Speed (Velocidad)"] },
-                { q: "¿Cuál de estos NO es un lenguaje de programación?", c: "Photoshop", d: ["Java", "Ruby", "C#"] },
-                { q: "¿Qué es un 'Bug' en informática?", c: "Un error o fallo en un programa.", d: ["Un insecto dentro del teclado.", "Una función secreta.", "Una contraseña segura."] }
+                { q: "¿Qué es el Software?", c: "Los programas y aplicaciones lógicas", d: ["Los componentes físicos", "Los cables y hardware", "El teclado y monitor"] },
+                { q: "¿Qué es el Hardware?", c: "Las partes físicas de la computadora", d: ["Los programas", "Los virus y troyanos", "El sistema operativo"] },
+                { q: "¿Lenguaje base para estructurar la web?", c: "HTML", d: ["Python", "C++", "Assembly"] },
+                { q: "¿Qué significa RAM?", c: "Memoria de Acceso Aleatorio", d: ["Read Access Module", "Rapid Action Memory", "Run And Move"] },
+                { q: "¿Para qué sirve una IP?", c: "Identifica un dispositivo en la red", d: ["Mide la velocidad", "Protege contra virus", "Guarda fotos en la nube"] },
+                { q: "¿Qué es un Sistema Operativo?", c: "Software base que administra la PC", d: ["Un procesador físico", "Un programa de fotos", "Un antivirus gratuito"] },
+                { q: "¿Quién fundó Microsoft?", c: "Bill Gates y Paul Allen", d: ["Steve Jobs", "Mark Zuckerberg", "Elon Musk"] },
+                { q: "¿Qué es el Phishing?", c: "Robo de datos por engaño", d: ["Programa de pesca virtual", "Acelerar la tarjeta gráfica", "Hacer copias de seguridad"] },
+                { q: "¿Atajo de teclado para Deshacer?", c: "Ctrl + Z", d: ["Ctrl + C", "Ctrl + V", "Alt + F4"] },
+                { q: "¿Qué es un Disco Duro (HDD)?", c: "Unidad de almacenamiento magnético", d: ["Memoria temporal", "Procesador gráfico", "Placa madre"] },
+                { q: "¿Qué significa USB?", c: "Universal Serial Bus", d: ["Unified System Block", "Universal Software Base", "Utility Storage Bin"] },
+                { q: "¿Cuál es el cerebro de la computadora?", c: "El Procesador (CPU)", d: ["La Memoria RAM", "La Fuente de Poder", "El Disco Duro"] },
+                { q: "¿Qué es un Malware?", c: "Software malicioso", d: ["Software de diseño", "Hardware externo", "Antivirus de pago"] },
+                { q: "¿Qué significa Wi-Fi?", c: "Wireless Fidelity", d: ["Wire Fire", "Wide Frequency", "Windows File"] },
+                { q: "¿Qué empresa creó el iPhone?", c: "Apple", d: ["Samsung", "Google", "Microsoft"] },
+                { q: "¿Qué es un Navegador Web?", c: "Un programa para acceder a internet", d: ["Un buscador como Google", "Un antivirus", "Un sistema operativo"] },
+                { q: "¿Qué hace la tecla F5 comúnmente?", c: "Actualiza la página", d: ["Cierra la ventana", "Apaga el PC", "Guarda el documento"] },
+                { q: "¿Qué significa URL?", c: "Uniform Resource Locator", d: ["Universal Routing Link", "Unified Resource Link", "User Routing Locator"] },
+                { q: "¿Qué es la Nube (Cloud)?", c: "Servidores externos de almacenamiento", d: ["El clima simulado en PC", "Un disco duro blanco", "Una marca de memorias"] },
+                { q: "¿Qué es un Algoritmo?", c: "Serie de pasos para resolver un problema", d: ["Un virus destructivo", "Un lenguaje extinto", "Una parte de la placa madre"] },
+                { q: "¿Qué componente enfría la PC?", c: "Disipador / Ventilador", d: ["El Router", "El Cable SATA", "La Memoria ROM"] },
+                { q: "¿Qué sistema operativo es de código abierto?", c: "Linux", d: ["Windows", "macOS", "iOS"] },
+                { q: "¿Qué significa HTTP?", c: "HyperText Transfer Protocol", d: ["Hyper Text Terminal", "High Transfer Tech", "Host Text Protocol"] },
+                { q: "¿Qué es una Tarjeta Madre?", c: "Placa principal que conecta todo", d: ["Tarjeta de red", "Tarjeta gráfica", "Memoria secundaria"] },
+                { q: "¿Qué es el Spam?", c: "Correo basura o no deseado", d: ["Carne enlatada", "Virus informático", "Memoria virtual"] },
+                { q: "¿Quién creó Facebook?", c: "Mark Zuckerberg", d: ["Elon Musk", "Bill Gates", "Jeff Bezos"] },
+                { q: "¿Qué es un Firewall?", c: "Sistema de seguridad de red", d: ["Un virus de fuego", "Un programa para quemar CDs", "Un tipo de cable"] },
+                { q: "¿Qué significa PDF?", c: "Portable Document Format", d: ["Print Data File", "Personal Document Folder", "Program Data Format"] },
+                { q: "¿Qué empresa compró YouTube en 2006?", c: "Google", d: ["Microsoft", "Yahoo", "Facebook"] },
+                { q: "¿Qué es un Bug?", c: "Un error en el software", d: ["Un procesador", "Una característica nueva", "Un cable suelto"] },
+                { q: "¿Para qué sirve el comando Ctrl+C?", c: "Copiar", d: ["Pegar", "Cortar", "Guardar"] },
+                { q: "¿Cuál es el buscador web más usado?", c: "Google", d: ["Bing", "Yahoo", "DuckDuckGo"] },
+                { q: "¿Qué significa VPN?", c: "Virtual Private Network", d: ["Visual Public Network", "Very Private Node", "Virtual Port Network"] },
+                { q: "¿Qué es un Hacker (White Hat)?", c: "Experto en seguridad que ayuda", d: ["Delincuente cibernético", "Creador de virus", "Un bot de spam"] },
+                { q: "¿Qué es la BIOS?", c: "Sistema básico de entrada/salida", d: ["Programa de edición", "Unidad de almacenamiento", "Un antivirus"] },
+                { q: "¿Qué mide la velocidad del procesador?", c: "Gigahercios (GHz)", d: ["Gigabytes (GB)", "Megapíxeles", "Voltios"] },
+                { q: "¿Qué es el código binario?", c: "Sistema numérico de ceros y unos", d: ["Lenguaje humano", "Código de barras", "Sistema de letras"] },
+                { q: "¿Qué hace una Tarjeta Gráfica (GPU)?", c: "Procesa y renderiza imágenes", d: ["Guarda archivos de texto", "Emite sonido", "Conecta a internet"] },
+                { q: "¿Qué es el ancho de banda?", c: "Capacidad máxima de transmisión de datos", d: ["Grosor del cable", "Tamaño de la pantalla", "Peso del router"] }
             ],
             palabras: [
-                { q: "¿Cuál de estos es un sinónimo de 'Rápido'?", c: "Veloz", d: ["Lento", "Pesado", "Aletargado"] },
-                { q: "Sinónimo de 'Gélido':", c: "Helado", d: ["Caliente", "Tibio", "Hervido"] },
-                { q: "¿Cuál es el antónimo de 'Oscuro'?", c: "Claro", d: ["Negro", "Gris", "Sombrío"] },
-                { q: "¿Cómo se escribe correctamente la palabra?", c: "Decisión", d: ["Desición", "Decición", "Desisión"] },
-                { q: "¿Qué es un 'sustantivo'?", c: "Nombra personas, animales, lugares o cosas.", d: ["Indica una acción.", "Describe características.", "Une oraciones."] },
-                { q: "Antónimo de 'Arriba':", c: "Abajo", d: ["Cerca", "Lejos", "Adentro"] },
-                { q: "¿Cuál es sinónimo de 'Alegre'?", c: "Feliz", d: ["Enojado", "Deprimido", "Aburrido"] },
-                { q: "¿Qué palabra de estas es aguda?", c: "Corazón", d: ["Árbol", "Lámpara", "Mesa"] },
-                { q: "¿Cuál de las siguientes palabras es esdrújula?", c: "Música", d: ["Reloj", "Pared", "Silla"] },
-                { q: "Sinónimo de 'Comenzar':", c: "Empezar", d: ["Terminar", "Concluir", "Pausar"] },
-                { q: "¿Cómo se escribe el plural de 'Luz'?", c: "Luces", d: ["Luzes", "Luses", "Lusces"] },
-                { q: "¿Qué signo de puntuación indica una pausa breve?", c: "La coma", d: ["El punto", "Los dos puntos", "El punto y coma"] },
-                { q: "Antónimo de 'Fuerte':", c: "Débil", d: ["Poderoso", "Robusto", "Sólido"] },
-                { q: "¿Qué es un verbo?", c: "Palabra que indica acción o estado.", d: ["Nombra objetos.", "Indica cantidad.", "Signo de exclamación."] },
-                { q: "Sinónimo de 'Hermoso':", c: "Bello", d: ["Feo", "Horrible", "Desagradable"] },
-                { q: "¿Cuál está escrita SIN errores de ortografía?", c: "Excepción", d: ["Exsepción", "Ecepción", "Excepsión"] },
-                { q: "Antónimo de 'Valiente':", c: "Cobarde", d: ["Heroico", "Intrépido", "Decidido"] },
-                { q: "¿Qué tipo de palabra es 'Rápidamente'?", c: "Adverbio", d: ["Sustantivo", "Verbo", "Adjetivo"] },
-                { q: "Sinónimo de 'Ocultar':", c: "Esconder", d: ["Mostrar", "Exhibir", "Revelar"] },
-                { q: "¿Qué palabra lleva tilde diacrítica?", c: "Él (pronombre)", d: ["El (artículo)", "Mes", "Sol"] }
+                { q: "Sinónimo de Rápido", c: "Veloz", d: ["Lento", "Pesado", "Aletargado"] },
+                { q: "Antónimo de Oscuro", c: "Claro", d: ["Negro", "Gris", "Sombrío"] },
+                { q: "¿Cómo se escribe correctamente?", c: "Decisión", d: ["Desición", "Decición", "Desisión"] },
+                { q: "¿Qué es un sustantivo?", c: "Nombra cosas, personas o lugares", d: ["Indica acción", "Describe cualidad", "Une oraciones"] },
+                { q: "Antónimo de Arriba", c: "Abajo", d: ["Cerca", "Lejos", "Adentro"] },
+                { q: "Palabra aguda (acento en la última sílaba)", c: "Corazón", d: ["Árbol", "Lámpara", "Mesa"] },
+                { q: "Plural correcto de Luz", c: "Luces", d: ["Luzes", "Luses", "Lusces"] },
+                { q: "Sinónimo de Empezar", c: "Comenzar", d: ["Terminar", "Pausar", "Concluir"] },
+                { q: "¿Qué es un verbo?", c: "Palabra que indica acción o estado", d: ["Nombra cosas", "Indica cantidad", "Signo ortográfico"] },
+                { q: "Antónimo de Valiente", c: "Cobarde", d: ["Heroico", "Intrépido", "Fuerte"] },
+                { q: "Sinónimo de Hermoso", c: "Bello", d: ["Horrible", "Feo", "Grotesco"] },
+                { q: "¿Cuál es una palabra llana/grave?", c: "Árbol", d: ["Reloj", "Pájaro", "Sílaba"] },
+                { q: "¿Qué es un adjetivo?", c: "Palabra que describe al sustantivo", d: ["Una acción", "Un nombre propio", "Un pronombre"] },
+                { q: "Antónimo de Rico", c: "Pobre", d: ["Millonario", "Acaudalado", "Abundante"] },
+                { q: "Sinónimo de Ocultar", c: "Esconder", d: ["Mostrar", "Revelar", "Exhibir"] },
+                { q: "¿Cómo se escribe?", c: "Excepción", d: ["Ecepción", "Excepsión", "Exsepción"] },
+                { q: "¿Cuál es un pronombre personal?", c: "Nosotros", d: ["Correr", "Rápido", "Ayer"] },
+                { q: "Sinónimo de Feliz", c: "Alegre", d: ["Triste", "Enojado", "Furioso"] },
+                { q: "Antónimo de Lleno", c: "Vacío", d: ["Repleto", "Colmado", "Abundante"] },
+                { q: "¿Qué signo indica una pregunta?", c: "Interrogación (?)", d: ["Exclamación (!)", "Coma (,)", "Punto (.)"] },
+                { q: "Palabra esdrújula", c: "Música", d: ["Cantar", "Guitarra", "Canción"] },
+                { q: "Sinónimo de Fácil", c: "Sencillo", d: ["Complicado", "Difícil", "Complejo"] },
+                { q: "Antónimo de Caliente", c: "Frío", d: ["Tibio", "Hervido", "Cálido"] },
+                { q: "¿Qué expresa un adverbio de tiempo?", c: "Cuándo ocurre la acción", d: ["Cómo es algo", "Quién lo hace", "Dónde está"] },
+                { q: "¿Cuál es un adverbio de tiempo?", c: "Mañana", d: ["Rápido", "Mucho", "Aquí"] },
+                { q: "Sinónimo de Enorme", c: "Gigante", d: ["Pequeño", "Diminuto", "Corto"] },
+                { q: "Antónimo de Comprar", c: "Vender", d: ["Adquirir", "Obtener", "Robar"] },
+                { q: "¿Cuál de estas palabras lleva 'H'?", c: "Hielo", d: ["Ielo", "Yelo", "Llelo"] },
+                { q: "Plural de Pez", c: "Peces", d: ["Pezes", "Peses", "Pesces"] },
+                { q: "Sinónimo de Enojado", c: "Furioso", d: ["Tranquilo", "Pacífico", "Alegre"] },
+                { q: "Antónimo de Ruido", c: "Silencio", d: ["Grito", "Estruendo", "Sonido"] },
+                { q: "¿Qué es un sinónimo?", c: "Palabra con significado similar", d: ["Palabra opuesta", "Palabra mal escrita", "Verbo en pasado"] },
+                { q: "¿Cómo se escribe?", c: "Hacer", d: ["Aser", "Haser", "Acer"] },
+                { q: "Sinónimo de Charlar", c: "Conversar", d: ["Callar", "Gritar", "Correr"] },
+                { q: "Antónimo de Cerca", c: "Lejos", d: ["Próximo", "Junto", "Al lado"] },
+                { q: "Palabra con acento ortográfico (tilde)", c: "Cajón", d: ["Mesa", "Puerta", "Zapato"] },
+                { q: "Sinónimo de Inteligente", c: "Astuto", d: ["Torpe", "Tonto", "Lento"] },
+                { q: "Antónimo de Joven", c: "Viejo / Anciano", d: ["Niño", "Adolescente", "Bebé"] },
+                { q: "¿Cuál es una preposición?", c: "Para", d: ["Correr", "Yo", "Feliz"] },
+                { q: "¿Qué tipo de palabra es 'y'?", c: "Conjunción", d: ["Adjetivo", "Verbo", "Sustantivo"] }
             ],
             general: [
-                { q: "¿Cuál es el planeta más enorme del Sistema Solar?", c: "Júpiter", d: ["Saturno", "Mercurio", "Marte"] },
-                { q: "¿Cuál es la capital de Francia?", c: "París", d: ["Roma", "Berlín", "Madrid"] },
-                { q: "¿Quién pintó la Mona Lisa?", c: "Leonardo da Vinci", d: ["Pablo Picasso", "Vincent van Gogh", "Claude Monet"] },
-                { q: "¿Cuál es el océano más grande del mundo?", c: "Océano Pacífico", d: ["Océano Atlántico", "Océano Índico", "Océano Ártico"] },
+                { q: "Planeta más grande del Sistema Solar", c: "Júpiter", d: ["Saturno", "Marte", "Tierra"] },
+                { q: "Capital de Francia", c: "París", d: ["Roma", "Madrid", "Berlín"] },
+                { q: "¿Quién pintó la Mona Lisa?", c: "Leonardo da Vinci", d: ["Picasso", "Van Gogh", "Monet"] },
+                { q: "Océano más extenso del mundo", c: "Océano Pacífico", d: ["Océano Atlántico", "Océano Índico", "Océano Ártico"] },
+                { q: "Animal terrestre más veloz", c: "Guepardo", d: ["León", "Caballo", "Tigre"] },
+                { q: "Autor de Don Quijote de la Mancha", c: "Miguel de Cervantes", d: ["Shakespeare", "Borges", "García Márquez"] },
+                { q: "País con más territorio en el mundo", c: "Rusia", d: ["China", "Canadá", "EEUU"] },
+                { q: "Año de la llegada del hombre a la Luna", c: "1969", d: ["1959", "1979", "1989"] },
+                { q: "Hueso más largo del cuerpo humano", c: "Fémur", d: ["Tibia", "Cráneo", "Costilla"] },
+                { q: "Fórmula química del agua", c: "H2O", d: ["CO2", "NaCl", "O3"] },
                 { q: "¿En qué continente está Egipto?", c: "África", d: ["Asia", "Europa", "América"] },
-                { q: "¿Cuál es el animal terrestre más rápido?", c: "Guepardo", d: ["León", "Caballo", "Tigre"] },
-                { q: "¿Quién escribió 'Don Quijote de la Mancha'?", c: "Miguel de Cervantes", d: ["Shakespeare", "García Márquez", "Borges"] },
-                { q: "¿Cuál es el país más grande del mundo por territorio?", c: "Rusia", d: ["China", "Canadá", "Estados Unidos"] },
-                { q: "¿Qué gas respiramos principalmente para vivir?", c: "Oxígeno", d: ["Dióxido de Carbono", "Nitrógeno puro", "Helio"] },
-                { q: "¿En qué año llegó el hombre a la luna?", c: "1969", d: ["1959", "1979", "1989"] },
-                { q: "¿Cuál es la moneda oficial de Japón?", c: "Yen", d: ["Yuan", "Won", "Dólar Japonés"] },
-                { q: "¿Qué órgano bombea la sangre a todo el cuerpo?", c: "El corazón", d: ["Los pulmones", "El cerebro", "El hígado"] },
-                { q: "¿En qué país se encuentra la Torre de Pisa?", c: "Italia", d: ["Francia", "España", "Grecia"] },
-                { q: "¿Qué clase de animal es una ballena?", c: "Mamífero marino", d: ["Pez gigante", "Reptil acuático", "Anfibio"] },
-                { q: "¿Cuál es la verdadera capital de Australia?", c: "Canberra", d: ["Sídney", "Melbourne", "Brisbane"] },
-                { q: "¿Qué instrumento musical tocaba Beethoven?", c: "El piano", d: ["El violín", "La guitarra", "La flauta"] },
-                { q: "¿Cuál es el río más largo del mundo?", c: "Río Amazonas (o Nilo)", d: ["Río Misisipi", "Río Yangtsé", "Río Bravo"] },
-                { q: "¿De qué colores es la bandera de México?", c: "Verde, blanco y rojo", d: ["Azul, blanco y rojo", "Amarillo, azul y rojo", "Verde, amarillo y azul"] },
-                { q: "¿Cuál es la fórmula química del agua?", c: "H2O", d: ["CO2", "O3", "NaCl"] },
-                { q: "¿Dónde se celebraron los Juegos Olímpicos de 2020?", c: "Tokio", d: ["Río de Janeiro", "Londres", "Pekín"] }
+                { q: "Moneda oficial de Japón", c: "Yen", d: ["Yuan", "Won", "Dólar"] },
+                { q: "Continente más helado del mundo", c: "Antártida", d: ["Europa", "Asia", "América"] },
+                { q: "¿Quién escribió Romeo y Julieta?", c: "William Shakespeare", d: ["Homero", "Dante", "Víctor Hugo"] },
+                { q: "Metal cuyo símbolo químico es Au", c: "Oro", d: ["Plata", "Aluminio", "Hierro"] },
+                { q: "Río más largo del mundo", c: "Amazonas", d: ["Nilo", "Misisipi", "Yangtsé"] },
+                { q: "Animal mamífero que puede volar", c: "Murciélago", d: ["Ardilla voladora", "Pájaro carpintero", "Avestruz"] },
+                { q: "Capital de Italia", c: "Roma", d: ["Milán", "Venecia", "Florencia"] },
+                { q: "País famoso por los canguros", c: "Australia", d: ["Nueva Zelanda", "Sudáfrica", "Brasil"] },
+                { q: "Gas esencial que respiramos", c: "Oxígeno", d: ["Dióxido de Carbono", "Helio", "Nitrógeno"] },
+                { q: "Satélite natural de la Tierra", c: "La Luna", d: ["Fobos", "Europa", "Titán"] },
+                { q: "¿En qué país está la Torre Eiffel?", c: "Francia", d: ["Inglaterra", "Alemania", "Italia"] },
+                { q: "Montaña más alta del mundo", c: "Monte Everest", d: ["K2", "Aconcagua", "Kilimanjaro"] },
+                { q: "Órgano que bombea la sangre", c: "Corazón", d: ["Pulmón", "Hígado", "Cerebro"] },
+                { q: "¿Cuántos continentes hay? (Modelo tradicional)", c: "5 o 6", d: ["3", "10", "8"] },
+                { q: "Capital de España", c: "Madrid", d: ["Barcelona", "Sevilla", "Valencia"] },
+                { q: "Deporte con un balón anaranjado y canastas", c: "Baloncesto", d: ["Fútbol", "Voleibol", "Tenis"] },
+                { q: "Idioma más hablado en Brasil", c: "Portugués", d: ["Español", "Inglés", "Francés"] },
+                { q: "Inventor de la bombilla eléctrica (patente principal)", c: "Thomas Edison", d: ["Nikola Tesla", "Albert Einstein", "Isaac Newton"] },
+                { q: "Científico que formuló la Teoría de la Relatividad", c: "Albert Einstein", d: ["Isaac Newton", "Galileo Galilei", "Stephen Hawking"] },
+                { q: "Colores primarios tradicionales", c: "Rojo, Azul, Amarillo", d: ["Verde, Morado, Naranja", "Blanco y Negro", "Rojo, Verde, Blanco"] },
+                { q: "Animal marino conocido como el más grande", c: "Ballena Azul", d: ["Tiburón Blanco", "Calamar Gigante", "Orca"] },
+                { q: "Reptil sin patas que repta", c: "Serpiente", d: ["Lagartija", "Tortuga", "Cocodrilo"] },
+                { q: "¿En qué país se originó el sushi?", c: "Japón", d: ["China", "Corea", "Tailandia"] },
+                { q: "Planeta conocido como el Planeta Rojo", c: "Marte", d: ["Venus", "Júpiter", "Mercurio"] },
+                { q: "Primera letra del alfabeto griego", c: "Alfa", d: ["Beta", "Omega", "Zeta"] },
+                { q: "¿Qué se celebra el 25 de diciembre?", c: "Navidad", d: ["Halloween", "Pascua", "Año Nuevo"] },
+                { q: "Animal símbolo de la paz", c: "Paloma Blanca", d: ["León", "Águila", "Oso"] },
+                { q: "¿Cuántos días tiene un año bisiesto?", c: "366", d: ["365", "364", "360"] },
+                { q: "Instrumento musical con teclas blancas y negras", c: "Piano", d: ["Guitarra", "Batería", "Violín"] }
             ]
         };
 
-        const BOTS = [ 
-            { name: "Bot_Alpha_V1", id: "b1", vaultScore: 5000, prog: { informatica: 1000, calculos: 500, palabras: 1000, general: 2500 } }, 
-            { name: "Deep_Logic", id: "b2", vaultScore: 15000, prog: { informatica: 5000, calculos: 4000, palabras: 3000, general: 3000 } }, 
-            { name: "Ghost_Root", id: "b3", vaultScore: 35000, prog: { informatica: 12000, calculos: 10000, palabras: 8000, general: 5000 } },
-            { name: "Cyber_Ninja", id: "b4", vaultScore: 80000, prog: { informatica: 25000, calculos: 20000, palabras: 15000, general: 20000 } }
-        ];
+        const BOTS = [ { name: "Bot_Alpha", id: "b1", vaultScore: 5000, prog: { informatica: 1000, calculos: 500, palabras: 1000, general: 2500 } }, { name: "Deep_Logic", id: "b2", vaultScore: 15000, prog: { informatica: 5000, calculos: 4000, palabras: 3000, general: 3000 } } ];
 
-        // LOGICA ALGORITMICA
-        function generateMathQuestion() {
-            const types = ['sum', 'sub', 'mul', 'div', 'sqrt'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            let q, c, d = [];
-            if (type === 'sum') { let a = Math.floor(Math.random() * 200) + 10; let b = Math.floor(Math.random() * 200) + 10; c = a + b; q = `¿Cuánto es ${a} + ${b}?`; d = [c + 10, c - 10, c + 5]; }
-            else if (type === 'sub') { let a = Math.floor(Math.random() * 200) + 50; let b = Math.floor(Math.random() * a) + 1; c = a - b; q = `¿Cuánto es ${a} - ${b}?`; d = [c + 5, c - 5, c + 10]; }
-            else if (type === 'mul') { let a = Math.floor(Math.random() * 15) + 2; let b = Math.floor(Math.random() * 15) + 2; c = a * b; q = `¿Cuánto es ${a} x ${b}?`; d = [c + a, c - a, c + 2]; }
-            else if (type === 'div') { let b = Math.floor(Math.random() * 10) + 2; let c_val = Math.floor(Math.random() * 20) + 2; let a = b * c_val; c = c_val; q = `¿Cuánto es ${a} ÷ ${b}?`; d = [c + 1, c - 1, c + 2]; }
-            else { let c_val = Math.floor(Math.random() * 15) + 2; let a = c_val * c_val; c = c_val; q = `¿Cuál es la raíz cuadrada de ${a}?`; d = [c + 1, c - 1, c + 2]; }
-            return { q: q, c: c.toString(), d: d.map(x => x.toString()) };
+        function generateMathQuestion(usedSet) {
+            let q, c, d = [], tStr;
+            let limit = 0;
+            // Generar matemáticas asegurando que NO se repitan en el mismo nivel
+            do {
+                const t = ['sum', 'sub', 'mul', 'div'][Math.floor(Math.random() * 4)]; 
+                if (t === 'sum') { let a=Math.floor(Math.random()*100)+10; let b=Math.floor(Math.random()*100)+10; c=a+b; q=`${a} + ${b}`; d=[c+10,c-5,c+2]; tStr = "¿Cuánto es " + q + "?"; }
+                else if (t === 'sub') { let a=Math.floor(Math.random()*100)+50; let b=Math.floor(Math.random()*a); c=a-b; q=`${a} - ${b}`; d=[c+5,c-2,c+10]; tStr = "¿Cuánto es " + q + "?"; }
+                else if (t === 'mul') { let a=Math.floor(Math.random()*12)+2; let b=Math.floor(Math.random()*12)+2; c=a*b; q=`${a} x ${b}`; d=[c+a,c-2,c+1]; tStr = "¿Cuánto es " + q + "?"; }
+                else { let b=Math.floor(Math.random()*10)+2; let c_v=Math.floor(Math.random()*12)+2; let a=b*c_v; c=c_v; q=`${a} ÷ ${b}`; d=[c+1,c-1,c+2]; tStr = "¿Cuánto es " + q + "?"; }
+                limit++;
+            } while (usedSet && usedSet.has(tStr) && limit < 100);
+            
+            if(usedSet) usedSet.add(tStr);
+            return { q: tStr, c: c.toString(), d: d.map(x=>x.toString()) };
         }
 
-        // MOTOR AUDIO
-        const THEME_WAVES = { informatica: 'square', calculos: 'sine', palabras: 'triangle', general: 'sawtooth', duel: 'sawtooth' };
         const AudioEngine = {
             ctx: new (window.AudioContext || window.webkitAudioContext || window.mozAudioContext)(),
-            resume: function() { if(this.ctx.state === 'suspended') this.ctx.resume(); },
+            resume: function() { if(this.ctx.state === 'suspended') this.ctx.resume(); forceLayout(); },
             play: function(freq, type, dur, vol, delay = 0) {
                 setTimeout(() => {
                     if(this.ctx.state === 'suspended') return;
@@ -555,240 +575,130 @@
                     osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
                     gain.gain.setValueAtTime(0, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(vol, this.ctx.currentTime + 0.02); 
                     gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur); 
-                    osc.connect(gain); gain.connect(this.ctx.destination);
-                    osc.start(this.ctx.currentTime); osc.stop(this.ctx.currentTime + dur);
+                    osc.connect(gain); gain.connect(this.ctx.destination); osc.start(this.ctx.currentTime); osc.stop(this.ctx.currentTime + dur);
                 }, delay);
             },
-            sndClick: function() { this.play(1200, 'square', 0.05, 0.05); },
-            sndKey: function() { this.play(800, 'sine', 0.03, 0.05); },
-            sndReveal: function() { let w = THEME_WAVES[state.currentModule] || 'square'; this.play(300, w, 0.1, 0.05); this.play(600, w, 0.1, 0.05, 100); },
-            sndCorrect: function() { let w = THEME_WAVES[state.currentModule] || 'square'; this.play(523.25, w, 0.1, 0.1); this.play(880, w, 0.15, 0.1, 100); },
+            sndClick: function() { this.play(1200, 'square', 0.05, 0.05); }, sndKey: function() { this.play(800, 'sine', 0.03, 0.05); },
+            sndReveal: function() { this.play(300, 'square', 0.1, 0.05); this.play(600, 'square', 0.1, 0.05, 100); },
+            sndCorrect: function() { this.play(523.25, 'square', 0.1, 0.1); this.play(880, 'square', 0.15, 0.1, 100); },
             sndError: function() { this.play(150, 'sawtooth', 0.3, 0.15); this.play(100, 'square', 0.4, 0.15, 200); },
-            sndWinGame: function() { let w = THEME_WAVES[state.currentModule] || 'square'; [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => this.play(f, w, 0.15, 0.1, i*120)); },
-            sndDuelTick: function() { this.play(1500, 'square', 0.05, 0.05); }
+            sndWinGame: function() { [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => this.play(f, 'square', 0.15, 0.1, i*120)); },
+            sndAlarm: function() { this.play(300, 'sawtooth', 0.2, 0.2); this.play(400, 'sawtooth', 0.2, 0.2, 200); }
         };
 
-        // ESTADO GLOBAL
-        const state = { currentModule: null, score: 0, cardsPlayed: 0, totalCards: 20, boardData: [], isAnimating: false, duelTimer: null, duelTimeLeft: 10, botTimeout: null };
+        const state = { currentModule: null, score: 0, cardsPlayed: 0, totalCards: 20, boardData: [], isAnimating: false, duelTimer: null, duelTimeLeft: 10, botTimeout: null, activePvPTarget: null, defendingAgainst: null };
         let localDB = { players: [], currentPlayerName: null };
-        
-        // CONFIGURACIÓN DE RED CLOUD (Firebase Firestore)
-        let isOnline = false;
-        let db = null;
-        let auth = null;
+        let isOnline = false; let db = null; let auth = null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'millo-app-id';
 
         async function initCloudNetwork() {
             try {
                 if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    const firebaseConfig = JSON.parse(__firebase_config);
-                    const app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-
+                    const app = initializeApp(JSON.parse(__firebase_config)); auth = getAuth(app); db = getFirestore(app);
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { await signInWithCustomToken(auth, __initial_auth_token); } else { await signInAnonymously(auth); }
                     onAuthStateChanged(auth, (user) => {
                         if (user) {
-                            isOnline = true;
-                            const ns = document.getElementById('network-status');
-                            ns.className = 'status-online'; ns.innerHTML = '🌐 CLOUD ONLINE';
-                            
-                            // Escuchar cambios en la DB pública
-                            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'players'), 
-                            (snapshot) => {
-                                localDB.players = [];
-                                snapshot.forEach(doc => { localDB.players.push(doc.data()); });
-                                window.renderPlayerList();
-                            }, 
-                            (error) => { console.error("Snapshot error:", error); });
+                            isOnline = true; document.getElementById('network-status').className = 'status-online'; document.getElementById('network-status').innerHTML = '🌐 ONLINE';
+                            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'players'), (snap) => {
+                                localDB.players = []; snap.forEach(doc => localDB.players.push(doc.data())); window.renderPlayerList(); window.updateUIStats();
+                            });
+                            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'attacks'), (snap) => {
+                                if(localDB.currentPlayerName) { snap.forEach(docSnap => { if(docSnap.id === localDB.currentPlayerName) window.triggerForcedDefense(docSnap.data()); }); }
+                            });
                         }
                     });
-                } else {
-                    // MODO LOCAL (Si lo abres en tu PC y no en Canvas)
-                    isOnline = false;
-                    const ns = document.getElementById('network-status');
-                    ns.className = 'status-local'; ns.innerHTML = '⚠️ MODO LOCAL (SIN NUBE)';
-                    // Memoria simulada temporal para que no se crashee en C:/
-                    window.renderPlayerList();
-                }
-            } catch (error) {
-                console.error("Cloud Error:", error);
-            }
+                } else { isOnline = false; document.getElementById('network-status').className = 'status-local'; document.getElementById('network-status').innerHTML = '⚠️ LOCAL'; window.renderPlayerList(); }
+            } catch (e) { console.error(e); }
         }
 
-        // FUNCIONES COMPARTIDAS AL WINDOW (Para el HTML)
-        function formatDataString(n) { return (n || 0).toLocaleString() + ' GB'; }
-        function shuffle(a) { return a.sort(() => Math.random() - 0.5); }
+        function formatDataString(n) { return (n || 0).toLocaleString() + ' GB'; } 
         function getActivePlayer() { return localDB.players.find(p => p.name === localDB.currentPlayerName); }
 
-        window.navToPlayers = (changeOp = false) => {
-            AudioEngine.resume(); AudioEngine.sndClick();
-            if(changeOp) { localDB.currentPlayerName = null; }
-            document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden'));
-            document.getElementById('screen-players').classList.remove('hidden');
-        };
+        window.navToPlayers = (changeOp = false) => { AudioEngine.resume(); if(changeOp) localDB.currentPlayerName = null; document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-players').classList.remove('hidden'); };
+        window.navToWelcome = () => { AudioEngine.resume(); document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-welcome').classList.remove('hidden'); };
+        window.navToModules = () => { AudioEngine.resume(); document.body.className = 'theme-informatica'; document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-modules').classList.remove('hidden'); window.updateUIStats(); };
 
-        window.navToWelcome = () => {
-            AudioEngine.resume(); AudioEngine.sndClick();
-            document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden'));
-            document.getElementById('screen-welcome').classList.remove('hidden');
-        };
-
-        window.navToModules = () => {
-            AudioEngine.resume(); AudioEngine.sndClick();
-            document.body.className = 'theme-informatica';
-            document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden'));
-            document.getElementById('screen-modules').classList.remove('hidden');
-            window.updateUIStats();
-        };
-
-        window.saveCloudData = async () => {
-            let p = getActivePlayer();
-            if(!p) return;
-            if(isOnline) {
-                try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', p.name), p);
-                } catch(e) { console.error("Cloud Save Error:", e); }
-            } else {
-                window.renderPlayerList(); // Update mem
-            }
+        window.saveCloudData = async (customPlayer = null) => {
+            let p = customPlayer || getActivePlayer(); if(!p) return;
+            if(isOnline) { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', p.name), p); } catch(e) {} } else { window.renderPlayerList(); }
         };
 
         window.selectPlayer = async (name) => {
-            AudioEngine.resume(); AudioEngine.sndClick();
-            if (!name || name.trim() === '') return;
+            AudioEngine.resume(); if (!name || name.trim() === '') return;
             let p = localDB.players.find(pl => pl.name === name);
-            if (!p) {
-                p = { name, vaultScore: 0, progress: { informatica: { played: 0, score: 0 }, calculos: { played: 0, score: 0 }, palabras: { played: 0, score: 0 }, general: { played: 0, score: 0 } } };
-                if (isOnline) {
-                    try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', name), p); } 
-                    catch(e) { console.error(e); }
-                } else {
-                    localDB.players.push(p);
-                }
-            }
-            localDB.currentPlayerName = name;
-            document.getElementById('player-input').value = '';
-            window.navToModules();
+            if (!p) { p = { name, vaultScore: 0, progress: { informatica: { played: 0, score: 0 }, calculos: { played: 0, score: 0 }, palabras: { played: 0, score: 0 }, general: { played: 0, score: 0 } } }; if (isOnline) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', name), p); else localDB.players.push(p); }
+            localDB.currentPlayerName = name; document.getElementById('player-input').value = ''; window.navToModules();
         };
 
-        window.saveInputPlayer = () => {
-            let n = document.getElementById('player-input').value.trim();
-            if(n) window.selectPlayer(n);
-        };
+        window.saveInputPlayer = () => { let n = document.getElementById('player-input').value.trim(); if(n) window.selectPlayer(n); };
 
-        // SISTEMA DE BORRADO DE JUGADORES
         let playerToDelete = null;
-        window.promptDelete = (e, name) => {
-            e.stopPropagation();
-            AudioEngine.resume(); AudioEngine.sndClick();
-            playerToDelete = name;
-            document.getElementById('confirm-msg').textContent = `¿Estás seguro de eliminar a "${name}" de la Nube? Esto no se puede deshacer.`;
-            document.getElementById('modal-confirm').classList.add('active');
-        };
-
-        window.confirmDeleteNo = () => {
-            AudioEngine.sndClick();
-            document.getElementById('modal-confirm').classList.remove('active');
-            playerToDelete = null;
-        };
-
+        window.promptDelete = (e, name) => { e.stopPropagation(); AudioEngine.resume(); playerToDelete = name; document.getElementById('confirm-msg').textContent = `¿Eliminar a "${name}" permanentemente?`; document.getElementById('modal-confirm').classList.add('active'); };
+        window.confirmDeleteNo = () => { AudioEngine.sndClick(); document.getElementById('modal-confirm').classList.remove('active'); playerToDelete = null; };
         window.confirmDeleteYes = async () => {
-            AudioEngine.sndClick();
-            if(playerToDelete) {
-                if(isOnline) {
-                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', playerToDelete)); }
-                    catch(e) { console.error(e); }
-                } else {
-                    localDB.players = localDB.players.filter(p => p.name !== playerToDelete);
-                    window.renderPlayerList();
-                }
-                
-                if(localDB.currentPlayerName === playerToDelete) {
-                    localDB.currentPlayerName = null;
-                }
+            AudioEngine.sndClick(); if(playerToDelete) {
+                if(isOnline) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', playerToDelete)); } catch(e){} } 
+                else { localDB.players = localDB.players.filter(p => p.name !== playerToDelete); window.renderPlayerList(); }
+                if(localDB.currentPlayerName === playerToDelete) localDB.currentPlayerName = null;
             }
-            document.getElementById('modal-confirm').classList.remove('active');
-            playerToDelete = null;
+            document.getElementById('modal-confirm').classList.remove('active'); playerToDelete = null;
         };
 
         window.renderPlayerList = () => {
-            document.getElementById('player-list-container').innerHTML = localDB.players.map(p => `
-                <div class="player-item" onclick="window.selectPlayer('${p.name}')">
-                    <span class="player-name">${p.name}</span>
-                    <div style="display:flex; align-items:center;">
-                        <span style="color:var(--color-success); font-weight:bold;">${formatDataString(p.vaultScore)}</span>
-                        <button class="btn-delete-player" onclick="window.promptDelete(event, '${p.name}')">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
+            document.getElementById('player-list-container').innerHTML = localDB.players.map(p => `<div class="player-item" onclick="window.selectPlayer('${p.name}')"><span class="player-name">${p.name}</span><div style="display:flex; align-items:center;"><span style="color:var(--color-success); font-weight:bold;">${formatDataString(p.vaultScore)}</span><button class="btn-delete-player" onclick="window.promptDelete(event, '${p.name}')">🗑️</button></div></div>`).join('');
         };
 
         window.updateUIStats = () => {
             let p = getActivePlayer(); if(!p) return;
-            document.getElementById('welcome-player-text').textContent = `Operador activo: ${p.name}`;
-            document.getElementById('ui-vault-total').textContent = formatDataString(p.vaultScore);
+            document.getElementById('welcome-player-text').textContent = `Operador activo: ${p.name}`; document.getElementById('ui-vault-total').textContent = formatDataString(p.vaultScore);
             document.querySelectorAll('.module-btn').forEach(btn => {
-                let mod = btn.getAttribute('data-module'); let prog = p.progress[mod]; let progEl = document.getElementById(`prog-${mod}`);
-                progEl.innerHTML = ''; let isCompleted = prog.played >= state.totalCards;
-                if(isCompleted) { progEl.classList.add('completed-battery'); progEl.style.borderColor = "var(--color-success)"; } 
-                else { progEl.classList.remove('completed-battery'); progEl.style.borderColor = ""; }
-                for(let i=0; i < state.totalCards; i++) {
-                    let seg = document.createElement('div'); seg.className = 'battery-segment';
-                    if (i < prog.played) {
-                        seg.classList.add('filled');
-                        if(!isCompleted){
-                            if(mod === 'informatica') seg.style.background = '#00f0ff';
-                            if(mod === 'calculos') seg.style.background = '#39ff14';
-                            if(mod === 'palabras') seg.style.background = '#ff00ff';
-                            if(mod === 'general') seg.style.background = '#ffaa00';
-                        }
-                    }
-                    progEl.appendChild(seg);
-                }
+                let mod = btn.getAttribute('data-module'); let prog = p.progress[mod]; let progEl = document.getElementById(`prog-${mod}`); progEl.innerHTML = ''; 
+                let isCompleted = prog.played >= state.totalCards;
+                if(isCompleted) { progEl.classList.add('completed-battery'); progEl.style.borderColor = "var(--color-success)"; } else { progEl.classList.remove('completed-battery'); progEl.style.borderColor = ""; }
+                for(let i=0; i < state.totalCards; i++) { let seg = document.createElement('div'); seg.className = 'battery-segment'; if (i < prog.played) { seg.classList.add('filled'); if(!isCompleted){ seg.style.background = mod==='informatica'?'#00f0ff':mod==='calculos'?'#39ff14':mod==='palabras'?'#ff00ff':'#ffaa00'; } } progEl.appendChild(seg); }
             });
         };
 
-        // JUEGO SOLO Y MODALES
         function spawnApotheoticText(btnEl, text, type) {
             const rect = btnEl.getBoundingClientRect(); const startX = rect.left + rect.width / 2; const startY = rect.top + rect.height / 2;
             const endX = window.innerWidth / 2; const endY = window.innerHeight / 2;
-            const dx = endX - startX; const dy = endY - startY;
             let el = document.createElement('div'); el.className = `floating-feedback apotheotic ${type}`; el.textContent = text;
-            el.style.left = `${startX}px`; el.style.top = `${startY}px`;
-            el.style.setProperty('--dx', `${dx}px`); el.style.setProperty('--dy', `${dy}px`);
+            el.style.left = `${startX}px`; el.style.top = `${startY}px`; el.style.setProperty('--dx', `${endX - startX}px`); el.style.setProperty('--dy', `${endY - startY}px`);
             document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
         }
 
+        // ==========================================
+        // LÓGICA DE EXTRACCIÓN ÚNICA (SIN REPETICIONES)
+        // ==========================================
         window.initSoloGame = (moduleName) => {
-            AudioEngine.resume(); AudioEngine.sndClick();
-            state.currentModule = moduleName; state.isAnimating = false; document.body.className = `theme-${moduleName}`;
-            let p = getActivePlayer(); let prog = p.progress[moduleName];
-            if(prog.played >= state.totalCards) { prog.played = 0; prog.score = 0; window.saveCloudData(); }
+            AudioEngine.resume(); state.currentModule = moduleName; state.isAnimating = false; document.body.className = `theme-${moduleName}`;
+            let p = getActivePlayer(); let prog = p.progress[moduleName]; if(prog.played >= state.totalCards) { prog.played = 0; prog.score = 0; window.saveCloudData(); }
             state.cardsPlayed = prog.played; state.score = prog.score;
             
-            let shuffledPrizes = shuffle([...PRIZES_POOL]); let questionsToUse = [];
-            for(let i=0; i<state.totalCards; i++) {
-                if (moduleName === 'calculos') questionsToUse.push(generateMathQuestion());
-                else { let dbM = DB_MODULES[moduleName] || []; questionsToUse.push(dbM[Math.floor(Math.random() * dbM.length)]); }
+            let shuffledPrizes = shuffleFisherYates([...PRIZES_POOL]); 
+            let questionsToUse = [];
+            
+            if (moduleName === 'calculos') {
+                let mathSet = new Set();
+                for(let i=0; i<state.totalCards; i++) { questionsToUse.push(generateMathQuestion(mathSet)); }
+            } else {
+                // Clonamos la base de datos completa de ese módulo (las 40 preguntas)
+                let fullPool = [...DB_MODULES[moduleName]];
+                // Barajamos toda la base de datos
+                fullPool = shuffleFisherYates(fullPool);
+                // Cortamos exactamente las primeras 20 (cero repeticiones)
+                questionsToUse = fullPool.slice(0, state.totalCards);
             }
 
-            state.boardData = [];
+            state.boardData = []; 
             for(let i = 0; i < state.totalCards; i++) { 
-                let st = i < state.cardsPlayed ? 'won' : 'hidden';
-                state.boardData.push({ id: i, prize: shuffledPrizes[i], questionData: questionsToUse[i], status: st }); 
+                state.boardData.push({ id: i, prize: shuffledPrizes[i], questionData: questionsToUse[i], status: i < state.cardsPlayed ? 'won' : 'hidden' }); 
             }
 
             const grid = document.getElementById('grid-cards'); grid.innerHTML = '';
             state.boardData.forEach((cardData, i) => {
-                let cardEl = document.createElement('div'); cardEl.className = 'card';
-                if(cardData.status !== 'hidden') cardEl.classList.add('revealed', `state-${cardData.status}`);
-                cardEl.id = `card-${i}`; let iconHtml = ''; if(cardData.status === 'won') iconHtml = '✔️'; if(cardData.status === 'lost') iconHtml = '❌';
+                let cardEl = document.createElement('div'); cardEl.className = 'card'; if(cardData.status !== 'hidden') cardEl.classList.add('revealed', `state-${cardData.status}`); cardEl.id = `card-${i}`;
+                let iconHtml = cardData.status === 'won' ? '✔️' : cardData.status === 'lost' ? '❌' : '';
                 cardEl.innerHTML = `<div class="card-inner"><div class="card-front"><span class="card-number">${i + 1}</span></div><div class="card-back"><span class="card-prize">${formatDataString(cardData.prize)}</span><div class="card-status-icon">${iconHtml}</div></div></div>`;
                 cardEl.onclick = () => window.handleCardClick(i); grid.appendChild(cardEl);
             });
@@ -798,165 +708,199 @@
 
         window.handleCardClick = (id) => {
             if (state.isAnimating) return; let cardData = state.boardData[id]; if (!cardData || cardData.status !== 'hidden') return;
-            state.isAnimating = true; state.currentCardId = id;
-            let cardEl = document.getElementById(`card-${id}`); cardEl.classList.add('revealed');
-            cardEl.querySelector('.card-status-icon').innerHTML = '<span style="font-size:2rem; animation: scanline 1s infinite">[_]</span>'; 
-            AudioEngine.sndReveal();
+            state.isAnimating = true; state.currentCardId = id; let cardEl = document.getElementById(`card-${id}`); cardEl.classList.add('revealed');
+            cardEl.querySelector('.card-status-icon').innerHTML = '<span style="font-size:1.5rem; animation: scanline 1s infinite">[_]</span>'; AudioEngine.sndReveal();
+            
             setTimeout(() => {
                 const mPrize = document.getElementById('modal-prize'); const mQ = document.getElementById('modal-question'); const mOpts = document.getElementById('modal-options');
-                mPrize.style.color = 'var(--theme-primary)'; mPrize.textContent = formatDataString(cardData.prize); mQ.textContent = cardData.questionData.q;
-                let allOptions = [cardData.questionData.c, ...cardData.questionData.d]; let shuffledOptions = shuffle(allOptions);
+                mPrize.textContent = formatDataString(cardData.prize); mQ.textContent = cardData.questionData.q;
+                
+                // MEZCLADO PROFUNDO FISHER-YATES DE OPCIONES
+                let allOptions = [cardData.questionData.c, ...cardData.questionData.d];
+                allOptions = shuffleFisherYates(allOptions);
+                
                 mOpts.innerHTML = ''; const letters = ['A', 'B', 'C', 'D'];
-                shuffledOptions.forEach((optText, index) => {
-                    let btn = document.createElement('button'); btn.className = 'option-btn'; btn.dataset.letter = letters[index]; btn.textContent = optText;
-                    let isCorrect = (optText === cardData.questionData.c); btn.onclick = () => window.handleAnswer(btn, isCorrect, cardData); mOpts.appendChild(btn);
+                allOptions.forEach((optText, index) => { 
+                    let btn = document.createElement('button'); btn.className = 'option-btn'; btn.dataset.letter = letters[index]; btn.textContent = optText; 
+                    btn.onclick = () => window.handleAnswer(btn, optText === cardData.questionData.c, cardData); 
+                    mOpts.appendChild(btn); 
                 });
                 document.getElementById('modal-overlay').classList.add('active');
-            }, 1500);
+            }, 1000);
         };
 
         window.handleAnswer = (clickedBtn, isCorrect, cardData) => {
-            const mOpts = document.getElementById('modal-options');
-            let allBtns = mOpts.querySelectorAll('.option-btn'); allBtns.forEach(b => b.disabled = true);
-            let cardEl = document.getElementById(`card-${state.currentCardId}`); let iconContainer = cardEl.querySelector('.card-status-icon');
-            let p = getActivePlayer();
-
+            const allBtns = document.getElementById('modal-options').querySelectorAll('.option-btn'); allBtns.forEach(b => b.disabled = true);
+            let p = getActivePlayer(); let iconContainer = document.getElementById(`card-${state.currentCardId}`).querySelector('.card-status-icon');
             if (isCorrect) {
-                clickedBtn.classList.add('selected-correct'); AudioEngine.sndCorrect();
-                state.score += cardData.prize; p.vaultScore += cardData.prize; 
-                state.boardData[state.currentCardId].status = 'won'; cardEl.classList.add('state-won'); iconContainer.innerHTML = '✔️';
+                clickedBtn.classList.add('selected-correct'); AudioEngine.sndCorrect(); state.score += cardData.prize; p.vaultScore += cardData.prize; 
+                state.boardData[state.currentCardId].status = 'won'; document.getElementById(`card-${state.currentCardId}`).classList.add('state-won'); iconContainer.innerHTML = '✔️';
                 spawnApotheoticText(clickedBtn, SUCCESS_WORDS[Math.floor(Math.random() * SUCCESS_WORDS.length)], 'success');
             } else {
                 clickedBtn.classList.add('selected-wrong'); AudioEngine.sndError();
-                allBtns.forEach(b => { if (b.textContent === cardData.questionData.c) { b.classList.add('reveal-correct'); } });
-                state.boardData[state.currentCardId].status = 'lost'; cardEl.classList.add('state-lost');
-                document.body.classList.add('shake-active'); setTimeout(() => { document.body.classList.remove('shake-active'); }, 600);
-                iconContainer.innerHTML = '❌';
+                allBtns.forEach(b => { if (b.textContent === cardData.questionData.c) b.classList.add('reveal-correct'); });
+                state.boardData[state.currentCardId].status = 'lost'; document.getElementById(`card-${state.currentCardId}`).classList.add('state-lost'); iconContainer.innerHTML = '❌';
+                document.body.classList.add('shake-active'); setTimeout(() => document.body.classList.remove('shake-active'), 600);
                 spawnApotheoticText(clickedBtn, ERROR_WORDS[Math.floor(Math.random() * ERROR_WORDS.length)], 'error');
             }
-
-            state.cardsPlayed++; p.progress[state.currentModule].played = state.cardsPlayed; p.progress[state.currentModule].score = state.score;
-            window.saveCloudData();
-
+            state.cardsPlayed++; p.progress[state.currentModule].played = state.cardsPlayed; p.progress[state.currentModule].score = state.score; window.saveCloudData();
             document.getElementById('ui-score').textContent = formatDataString(state.score); document.getElementById('ui-cards-left').textContent = `${state.cardsPlayed}/${state.totalCards}`;
             setTimeout(() => {
                 document.getElementById('modal-overlay').classList.remove('active'); state.isAnimating = false;
-                if (state.cardsPlayed >= state.totalCards) { 
-                    AudioEngine.sndWinGame(); document.getElementById('ui-final-score').textContent = formatDataString(state.score);
-                    document.getElementById('screen-game').classList.add('hidden'); document.getElementById('screen-end').classList.remove('hidden');
-                }
-            }, 3000); 
+                if (state.cardsPlayed >= state.totalCards) { AudioEngine.sndWinGame(); document.getElementById('ui-final-score').textContent = formatDataString(state.score); document.getElementById('screen-game').classList.add('hidden'); document.getElementById('screen-end').classList.remove('hidden'); }
+            }, 2500); 
         };
 
-        window.exitGame = () => { if(state.isAnimating) return; window.navToModules(); };
+        window.exitGame = () => { if(!state.isAnimating) window.navToModules(); };
 
-        // ==========================================
-        // HALL OF FAME Y DUELOS BOT (IA)
-        // ==========================================
-        window.initHoF = () => {
-            AudioEngine.resume(); AudioEngine.sndClick(); document.body.className = 'theme-hof';
-            document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden'));
-            document.getElementById('screen-hof').classList.remove('hidden'); window.renderHoF('global');
-        };
-
-        window.renderHoF = (category) => {
-            AudioEngine.sndClick();
-            document.querySelectorAll('.hof-tab').forEach(b => b.classList.remove('active'));
-            document.querySelector(`.hof-tab[data-hoftab="${category}"]`).classList.add('active');
-            const container = document.getElementById('hof-list-container'); container.innerHTML = '';
-            let allContenders = [];
-            BOTS.forEach(b => { let s = category === 'global' ? b.vaultScore : b.prog[category]; allContenders.push({ name: "🤖 " + b.name, score: s, isBot: true }); });
-            localDB.players.forEach(p => { let s = category === 'global' ? p.vaultScore : p.progress[category].score; allContenders.push({ name: p.name, score: s, isBot: false }); });
-            allContenders.sort((a, b) => b.score - a.score);
-            allContenders.slice(0, 50).forEach((contender, index) => {
-                let rankClass = ''; if(index === 0) rankClass = 'rank-1'; else if(index === 1) rankClass = 'rank-2'; else if(index === 2) rankClass = 'rank-3';
-                let tag = contender.isBot ? 'SIMULACIÓN IA' : 'OPERADOR ONLINE';
-                container.innerHTML += `<div class="hof-item ${rankClass}"><div class="hof-rank-badge">#${index + 1}</div><div class="hof-player-info"><span class="hof-name">${contender.name}</span><span class="hof-tag">${tag}</span></div><div class="hof-score">${formatDataString(contender.score)}</div></div>`;
-            });
+        window.initHoF = () => { AudioEngine.resume(); document.body.className = 'theme-hof'; document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-hof').classList.remove('hidden'); window.renderHoF('global'); };
+        window.renderHoF = (cat) => {
+            AudioEngine.sndClick(); document.querySelectorAll('.hof-tab').forEach(b => b.classList.remove('active')); document.querySelector(`.hof-tab[data-hoftab="${cat}"]`).classList.add('active');
+            const cont = document.getElementById('hof-list-container'); cont.innerHTML = ''; let allContenders = [];
+            BOTS.forEach(b => allContenders.push({ name: "🤖 " + b.name, score: cat === 'global' ? b.vaultScore : b.prog[cat], isBot: true }));
+            localDB.players.forEach(p => allContenders.push({ name: p.name, score: cat === 'global' ? p.vaultScore : p.progress[cat].score, isBot: false }));
+            allContenders.sort((a, b) => b.score - a.score).slice(0, 50).forEach((c, i) => { cont.innerHTML += `<div class="hof-item ${i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':''}"><div class="hof-rank-badge">#${i + 1}</div><div class="hof-player-info"><span class="hof-name">${c.name}</span><span class="hof-tag">${c.isBot?'SIMULACIÓN IA':'OPERADOR'}</span></div><div class="hof-score">${formatDataString(c.score)}</div></div>`; });
         };
 
         window.initBotArena = () => {
-            AudioEngine.resume(); AudioEngine.sndClick();
-            const arenaList = document.getElementById('arena-list'); arenaList.innerHTML = '';
-            BOTS.forEach(b => {
-                let div = document.createElement('div'); div.className = 'online-player is-bot';
-                div.innerHTML = `<div class="online-info"><span class="online-name">🤖 ${b.name}</span><span class="online-gb">Fondos Simulados: ${formatDataString(b.vaultScore)}</span></div><button class="btn-challenge" onclick="window.startBotDuel('${b.name}')">HACKEAR (IA)</button>`;
-                arenaList.appendChild(div);
-            });
+            AudioEngine.resume(); AudioEngine.sndClick(); const arenaList = document.getElementById('arena-list'); arenaList.innerHTML = '';
+            let realTargets = localDB.players.filter(p => p.name !== localDB.currentPlayerName);
+            
+            if (realTargets.length > 0) {
+                document.getElementById('arena-sub-ui').textContent = "Jugadores reales detectados. ¡Hackea y roba en tiempo real!";
+                realTargets.forEach(p => { arenaList.innerHTML += `<div class="online-player"><div class="online-info"><span class="online-name">${p.name}</span><span class="online-gb">Fondos: ${formatDataString(p.vaultScore)}</span></div><button class="btn-challenge" style="background:#00f0ff; border-color:#00f0ff; color:#000;" onclick="window.startPvP('${p.name}', false)">INICIAR HACKEO</button></div>`; });
+            } else {
+                document.getElementById('arena-sub-ui').textContent = "No hay humanos. Elige a un bot enemigo.";
+                BOTS.forEach(b => { arenaList.innerHTML += `<div class="online-player is-bot"><div class="online-info"><span class="online-name">🤖 ${b.name}</span><span class="online-gb">Simulados: ${formatDataString(b.vaultScore)}</span></div><button class="btn-challenge" onclick="window.startPvP('${b.name}', true)">SIMULAR</button></div>`; });
+            }
             document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-arena').classList.remove('hidden');
         };
 
-        window.startBotDuel = (botName) => {
+        window.startPvP = (targetName, isBot) => {
             AudioEngine.sndClick();
             const topics = Object.keys(DB_MODULES); const finalTopic = topics[Math.floor(Math.random() * topics.length)];
-            const dbMod = DB_MODULES[finalTopic]; const qData = dbMod[Math.floor(Math.random() * dbMod.length)];
+            const qData = DB_MODULES[finalTopic][Math.floor(Math.random() * DB_MODULES[finalTopic].length)];
             
-            setTimeout(() => {
-                state.currentModule = 'duel'; document.body.className = 'theme-duel';
-                document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-duel').classList.remove('hidden');
-                
-                let p = getActivePlayer();
-                document.getElementById('duel-p1-name').textContent = p.name; document.getElementById('duel-p2-name').textContent = "🤖 " + botName;
-                document.getElementById('duel-topic-label').textContent = `TEMA CARGADO: ${finalTopic.toUpperCase()}`; document.getElementById('duel-question').textContent = qData.q;
-                
-                const duelOptions = document.getElementById('duel-options'); duelOptions.innerHTML = '';
-                let allOptions = [qData.c, ...qData.d]; let shuffledOptions = shuffle(allOptions); const letters = ['A', 'B', 'C', 'D'];
+            state.currentModule = 'duel'; document.body.className = 'theme-duel';
+            document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-duel').classList.remove('hidden');
+            
+            document.getElementById('duel-p1-name').textContent = getActivePlayer().name; document.getElementById('duel-p2-name').textContent = (isBot ? "🤖 " : "") + targetName;
+            document.getElementById('duel-topic-label').textContent = `INICIANDO HACKEO: ${finalTopic.toUpperCase()}`; document.getElementById('duel-question').textContent = qData.q;
+            
+            const duelOptions = document.getElementById('duel-options'); duelOptions.innerHTML = '';
+            
+            // FISHER YATES EN PVP TMB
+            let allOptions = [qData.c, ...qData.d];
+            allOptions = shuffleFisherYates(allOptions);
+            
+            const letters = ['A', 'B', 'C', 'D'];
+            allOptions.forEach((opt, i) => {
+                let btn = document.createElement('button'); btn.className = 'option-btn'; btn.dataset.letter = letters[i]; btn.textContent = opt;
+                btn.onclick = () => window.resolveDuelAction(btn, opt === qData.c, isBot, targetName, qData); duelOptions.appendChild(btn);
+            });
 
-                shuffledOptions.forEach((optText, index) => {
-                    let btn = document.createElement('button'); btn.className = 'option-btn'; btn.dataset.letter = letters[index]; btn.textContent = optText;
-                    btn.onclick = () => window.resolveBotDuel(btn, optText === qData.c, true); duelOptions.appendChild(btn);
-                });
-
-                state.duelTimeLeft = 10; const timerEl = document.getElementById('duel-timer'); timerEl.textContent = "10.0"; timerEl.style.color = "var(--color-gold)";
-                clearInterval(state.duelTimer); clearTimeout(state.botTimeout);
-                
+            state.duelTimeLeft = 10; state.activePvPTarget = isBot ? null : targetName;
+            document.getElementById('duel-timer').textContent = "10.0"; document.getElementById('duel-timer').style.color = "var(--color-gold)";
+            clearInterval(state.duelTimer); clearTimeout(state.botTimeout);
+            
+            if (isBot) {
                 let botThinkTime = (Math.random() * 5.5 + 3.0) * 1000;
-                state.botTimeout = setTimeout(() => { let botAcerto = Math.random() < 0.7; window.resolveBotDuel(null, botAcerto, false); }, botThinkTime);
+                state.botTimeout = setTimeout(() => { window.resolveDuelAction(null, Math.random() < 0.7, true, targetName, qData, true); }, botThinkTime);
+            }
 
-                state.duelTimer = setInterval(() => {
-                    state.duelTimeLeft -= 0.1;
-                    if(state.duelTimeLeft <= 0) { clearInterval(state.duelTimer); clearTimeout(state.botTimeout); timerEl.textContent = "0.0"; window.resolveBotDuel(null, false, true, true); } 
-                    else { timerEl.textContent = state.duelTimeLeft.toFixed(1); if(state.duelTimeLeft < 3) { timerEl.style.color = "var(--color-error)"; AudioEngine.sndDuelTick(); } }
-                }, 100);
-            }, 500);
+            state.duelTimer = setInterval(() => {
+                state.duelTimeLeft -= 0.1;
+                if(state.duelTimeLeft <= 0) { clearInterval(state.duelTimer); clearTimeout(state.botTimeout); document.getElementById('duel-timer').textContent = "0.0"; window.resolveDuelAction(null, false, isBot, targetName, qData, false, true); } 
+                else { document.getElementById('duel-timer').textContent = state.duelTimeLeft.toFixed(1); if(state.duelTimeLeft < 3) { document.getElementById('duel-timer').style.color = "var(--color-error)"; AudioEngine.sndClick(); } }
+            }, 100);
         };
 
-        window.resolveBotDuel = (btn, isCorrect, answeredByPlayer, isTimeout = false) => {
+        window.resolveDuelAction = async (btn, isCorrect, isBot, targetName, qData, answeredByBot = false, isTimeout = false) => {
             clearInterval(state.duelTimer); clearTimeout(state.botTimeout);
-            let allBtns = document.getElementById('duel-options').querySelectorAll('.option-btn'); allBtns.forEach(b => b.disabled = true);
-            let p = getActivePlayer(); const mdr = document.getElementById('modal-duel-result'); const mdrTitle = document.getElementById('mdr-title'); const mdrMsg = document.getElementById('mdr-msg'); const mdrIcon = document.getElementById('mdr-icon');
-            setTimeout(() => {
+            document.getElementById('duel-options').querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+            let p = getActivePlayer(); const mdr = document.getElementById('modal-duel-result'); const mdrAns = document.getElementById('mdr-correct-answer');
+            mdrAns.style.display = 'none'; let timeTaken = 10 - state.duelTimeLeft;
+
+            setTimeout(async () => {
                 mdr.classList.add('active');
-                if (isTimeout) { AudioEngine.sndError(); mdrIcon.textContent = "⏱️"; mdrTitle.textContent = "TIEMPO AGOTADO"; mdrTitle.style.color = "var(--color-error)"; mdrMsg.textContent = "Lento. Pierdes 500 GB."; p.vaultScore = Math.max(0, p.vaultScore - 500); } 
-                else if (answeredByPlayer && isCorrect) { if(btn) btn.classList.add('selected-correct'); AudioEngine.sndWinGame(); mdrIcon.textContent = "🏆"; mdrTitle.textContent = "¡HACKEO ÉPICO!"; mdrTitle.style.color = "var(--color-success)"; mdrMsg.textContent = "¡Ganaste! Robas 1,000 GB."; p.vaultScore += 1000; } 
-                else if (answeredByPlayer && !isCorrect) { if(btn) btn.classList.add('selected-wrong'); AudioEngine.sndError(); mdrIcon.textContent = "💀"; mdrTitle.textContent = "FALLO CRÍTICO"; mdrTitle.style.color = "var(--color-error)"; mdrMsg.textContent = "Incorrecto. Pierdes 500 GB."; p.vaultScore = Math.max(0, p.vaultScore - 500); document.body.classList.add('shake-active'); setTimeout(() => { document.body.classList.remove('shake-active'); }, 600); } 
-                else if (!answeredByPlayer && isCorrect) { AudioEngine.sndError(); mdrIcon.textContent = "🤖"; mdrTitle.textContent = "IA MÁS RÁPIDA"; mdrTitle.style.color = "var(--color-error)"; mdrMsg.textContent = "La IA fue más rápida. Pierdes 500 GB."; p.vaultScore = Math.max(0, p.vaultScore - 500); document.body.classList.add('shake-active'); setTimeout(() => { document.body.classList.remove('shake-active'); }, 600); } 
-                else { AudioEngine.sndWinGame(); mdrIcon.textContent = "💥"; mdrTitle.textContent = "ERROR DEL BOT"; mdrTitle.style.color = "var(--color-success)"; mdrMsg.textContent = "La IA enemiga falló. ¡Ganas 1,000 GB!"; p.vaultScore += 1000; }
-                window.saveCloudData();
+                if(isBot) {
+                    if (isTimeout) { mdr.querySelector('#mdr-icon').textContent = "⏱️"; mdr.querySelector('#mdr-title').textContent = "AGOTADO"; mdr.querySelector('#mdr-title').style.color = "var(--color-error)"; mdr.querySelector('#mdr-msg').textContent = "Lento. Pierdes 500 GB."; p.vaultScore = Math.max(0, p.vaultScore - 500); AudioEngine.sndError(); mdrAns.style.display = 'block'; mdrAns.textContent = `Respuesta: ${qData.c}`; } 
+                    else if (!answeredByBot && isCorrect) { if(btn) btn.classList.add('selected-correct'); AudioEngine.sndWinGame(); mdr.querySelector('#mdr-icon').textContent = "🏆"; mdr.querySelector('#mdr-title').textContent = "HACKEO ÉPICO"; mdr.querySelector('#mdr-title').style.color = "var(--color-success)"; mdr.querySelector('#mdr-msg').textContent = "¡Le robaste 1,000 GB al bot!"; p.vaultScore += 1000; } 
+                    else if (!answeredByBot && !isCorrect) { if(btn) btn.classList.add('selected-wrong'); AudioEngine.sndError(); mdr.querySelector('#mdr-icon').textContent = "💀"; mdr.querySelector('#mdr-title').textContent = "FALLO"; mdr.querySelector('#mdr-title').style.color = "var(--color-error)"; mdr.querySelector('#mdr-msg').textContent = "Pierdes 500 GB."; p.vaultScore = Math.max(0, p.vaultScore - 500); mdrAns.style.display = 'block'; mdrAns.textContent = `Respuesta: ${qData.c}`; } 
+                    else if (answeredByBot && isCorrect) { AudioEngine.sndError(); mdr.querySelector('#mdr-icon').textContent = "🤖"; mdr.querySelector('#mdr-title').textContent = "IA RÁPIDA"; mdr.querySelector('#mdr-title').style.color = "var(--color-error)"; mdr.querySelector('#mdr-msg').textContent = "La IA fue más rápida. Pierdes 500 GB."; p.vaultScore = Math.max(0, p.vaultScore - 500); mdrAns.style.display = 'block'; mdrAns.textContent = `Respuesta: ${qData.c}`; } 
+                    else { AudioEngine.sndWinGame(); mdr.querySelector('#mdr-icon').textContent = "💥"; mdr.querySelector('#mdr-title').textContent = "ERROR IA"; mdr.querySelector('#mdr-title').style.color = "var(--color-success)"; mdr.querySelector('#mdr-msg').textContent = "El bot falló. ¡Ganas 1,000 GB!"; p.vaultScore += 1000; }
+                    window.saveCloudData();
+                } else {
+                    if (isTimeout || !isCorrect) {
+                        if(btn && !isCorrect) btn.classList.add('selected-wrong'); AudioEngine.sndError();
+                        mdr.querySelector('#mdr-icon').textContent = "❌"; mdr.querySelector('#mdr-title').textContent = "HACKEO FALLIDO"; mdr.querySelector('#mdr-title').style.color = "var(--color-error)"; mdr.querySelector('#mdr-msg').textContent = "El firewall te detectó. Pierdes 500 GB."; p.vaultScore = Math.max(0, p.vaultScore - 500);
+                        mdrAns.style.display = 'block'; mdrAns.textContent = `Respuesta: ${qData.c}`; window.saveCloudData();
+                    } else {
+                        if(btn) btn.classList.add('selected-correct'); AudioEngine.sndWinGame();
+                        mdr.querySelector('#mdr-icon').textContent = "🚀"; mdr.querySelector('#mdr-title').textContent = "PAYLOAD ENVIADO"; mdr.querySelector('#mdr-title').style.color = "#00f0ff"; mdr.querySelector('#mdr-msg').textContent = `Has obligado a ${targetName} a defenderse en < ${timeTaken.toFixed(1)}s.`;
+                        if (isOnline) { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attacks', targetName), { attacker: p.name, time: timeTaken, qData: qData, ts: Date.now() }); } catch(e){} }
+                    }
+                }
+            }, 1000);
+        };
+
+        window.triggerForcedDefense = (attackData) => {
+            if (state.defendingAgainst === attackData.attacker) return; state.defendingAgainst = attackData.attacker;
+            AudioEngine.sndAlarm(); document.getElementById('hack-flash').classList.add('active');
+            document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-duel').classList.remove('hidden'); document.body.className = 'theme-duel';
+
+            let p = getActivePlayer(); document.getElementById('duel-p1-name').textContent = p.name; document.getElementById('duel-p2-name').textContent = "HACKER: " + attackData.attacker;
+            document.getElementById('duel-topic-label').textContent = `¡ALERTA ROJA! DEFIÉNDETE EN MENOS DE ${attackData.time.toFixed(1)}s`; document.getElementById('duel-question').textContent = attackData.qData.q;
+            
+            const duelOptions = document.getElementById('duel-options'); duelOptions.innerHTML = '';
+            
+            let allOptions = [attackData.qData.c, ...attackData.qData.d];
+            allOptions = shuffleFisherYates(allOptions);
+            
+            const letters = ['A', 'B', 'C', 'D'];
+            allOptions.forEach((opt, i) => { let btn = document.createElement('button'); btn.className = 'option-btn'; btn.dataset.letter = letters[i]; btn.textContent = opt; btn.onclick = () => window.resolveDefense(btn, opt === attackData.qData.c, attackData); duelOptions.appendChild(btn); });
+
+            state.duelTimeLeft = attackData.time; document.getElementById('duel-timer').textContent = attackData.time.toFixed(1); document.getElementById('duel-timer').style.color = "var(--color-error)"; clearInterval(state.duelTimer);
+            state.duelTimer = setInterval(() => {
+                state.duelTimeLeft -= 0.1;
+                if(state.duelTimeLeft <= 0) { clearInterval(state.duelTimer); document.getElementById('duel-timer').textContent = "0.0"; window.resolveDefense(null, false, attackData, true); } 
+                else { document.getElementById('duel-timer').textContent = state.duelTimeLeft.toFixed(1); AudioEngine.sndClick(); }
+            }, 100);
+        };
+
+        window.resolveDefense = async (btn, isCorrect, attackData, isTimeout = false) => {
+            clearInterval(state.duelTimer); document.getElementById('hack-flash').classList.remove('active'); document.getElementById('duel-options').querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+            let p = getActivePlayer(); const mdr = document.getElementById('modal-duel-result'); const mdrAns = document.getElementById('mdr-correct-answer'); mdrAns.style.display = 'none';
+
+            if (isOnline) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attacks', p.name)); } catch(e){} }
+
+            setTimeout(async () => {
+                mdr.classList.add('active'); let attackerDoc = localDB.players.find(pl => pl.name === attackData.attacker);
+                if (isCorrect && !isTimeout) {
+                    if(btn) btn.classList.add('selected-correct'); AudioEngine.sndWinGame();
+                    mdr.querySelector('#mdr-icon').textContent = "🛡️"; mdr.querySelector('#mdr-title').textContent = "¡DEFENSA EXITOSA!"; mdr.querySelector('#mdr-title').style.color = "var(--color-success)"; mdr.querySelector('#mdr-msg').textContent = `Le devolviste el golpe a ${attackData.attacker}. Ganas 1,000 GB.`;
+                    p.vaultScore += 1000; if (attackerDoc) { attackerDoc.vaultScore = Math.max(0, attackerDoc.vaultScore - 1000); window.saveCloudData(attackerDoc); }
+                } else {
+                    if(btn && !isCorrect) btn.classList.add('selected-wrong'); AudioEngine.sndError();
+                    mdr.querySelector('#mdr-icon').textContent = "🏴‍☠️"; mdr.querySelector('#mdr-title').textContent = "SISTEMA VULNERADO"; mdr.querySelector('#mdr-title').style.color = "var(--color-error)"; mdr.querySelector('#mdr-msg').textContent = `${attackData.attacker} te ha robado 1,000 GB.`;
+                    p.vaultScore = Math.max(0, p.vaultScore - 1000); if (attackerDoc) { attackerDoc.vaultScore += 1000; window.saveCloudData(attackerDoc); }
+                    mdrAns.style.display = 'block'; mdrAns.textContent = `Respuesta Correcta: ${attackData.qData.c}`;
+                }
+                window.saveCloudData(p); state.defendingAgainst = null;
             }, 1000);
         };
 
         window.closeDuelResult = () => { AudioEngine.sndClick(); document.getElementById('modal-duel-result').classList.remove('active'); window.navToModules(); };
 
-        // CONSTRUIR TECLADO Y CARGAR
         const rows = [ ['1','2','3','4','5','6','7','8','9','0'], ['Q','W','E','R','T','Y','U','I','O','P'], ['A','S','D','F','G','H','J','K','L','Ñ'], ['Z','X','C','V','B','N','M','_'] ];
         const vk = document.getElementById('virtual-keyboard');
-        rows.forEach(row => {
-            const rowDiv = document.createElement('div'); rowDiv.className = 'key-row';
-            row.forEach(char => {
-                const btn = document.createElement('button'); btn.className = 'key'; btn.textContent = char;
-                btn.onclick = () => { AudioEngine.resume(); AudioEngine.sndKey(); const input = document.getElementById('player-input'); if(input.value.length < 15) input.value += char; };
-                rowDiv.appendChild(btn);
-            }); vk.appendChild(rowDiv);
-        });
+        rows.forEach(row => { const rowDiv = document.createElement('div'); rowDiv.className = 'key-row'; row.forEach(char => { const btn = document.createElement('button'); btn.className = 'key'; btn.textContent = char; btn.onclick = () => { AudioEngine.resume(); AudioEngine.sndKey(); const input = document.getElementById('player-input'); if(input.value.length < 15) input.value += char; }; rowDiv.appendChild(btn); }); vk.appendChild(rowDiv); });
         const specialRow = document.createElement('div'); specialRow.className = 'key-row';
         const spaceBtn = document.createElement('button'); spaceBtn.className = 'key special'; spaceBtn.style.flexGrow = '2'; spaceBtn.textContent = 'ESPACIO'; spaceBtn.onclick = () => { AudioEngine.resume(); AudioEngine.sndKey(); const input = document.getElementById('player-input'); if(input.value.length < 15) input.value += ' '; };
         const delBtn = document.createElement('button'); delBtn.className = 'key special'; delBtn.textContent = 'BORRAR'; delBtn.onclick = () => { AudioEngine.resume(); AudioEngine.sndKey(); const input = document.getElementById('player-input'); input.value = input.value.slice(0, -1); };
         specialRow.appendChild(spaceBtn); specialRow.appendChild(delBtn); vk.appendChild(specialRow);
 
-        // INICIAR CONEXIÓN
         initCloudNetwork();
-
     </script>
 </body>
 </html>
