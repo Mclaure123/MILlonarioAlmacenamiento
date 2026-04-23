@@ -2,310 +2,1182 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Ascenso del Almacenamiento v1.2</title>
-    
-    <!-- 
-        Manifiesto del Arquitecto Digital v3.3 (Versión Definitiva)
-        - RECONSTRUCCIÓN COMPLETA del flujo de ejecución del script para eliminar el fallo de precarga.
-        - La secuencia de inicialización ahora es robusta y garantiza la correcta carga de componentes.
-        - Se mantienen todas las características de la v1.1.
-    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SISTEMA MILLONARIO v16.5 (DUELOS 10 RONDAS)</title>
     <style>
-        /* Estilos idénticos a la versión anterior para mantener la consistencia visual */
-        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Orbitron:wght@500;700&display=swap');
-        :root { --color-fondo: #0a0a1a; --color-texto-principal: #d0d0e0; --color-primario: #00ffff; --color-secundario: #ffaa00; --color-borde: #3a3a5a; --color-contenedor: #111122; --color-correcto: #00ff7f; --color-incorrecto: #ff1744; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; overflow: hidden; background-color: var(--color-fondo); color: var(--color-texto-principal); font-family: 'Roboto Mono', monospace; }
-        .screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; opacity: 0; transition: opacity 0.8s ease-in-out; background-color: var(--color-fondo); }
-        .screen.active { display: flex; opacity: 1; z-index: 1; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(10, 10, 26, 0.95); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.5s; }
-        .overlay.active { opacity: 1; pointer-events: all; }
-        #precarga-screen .titulo { font-family: 'Orbitron', sans-serif; font-size: 2.5rem; color: var(--color-primario); letter-spacing: 8px; text-shadow: 0 0 10px var(--color-primario); margin-bottom: 2rem; }
-        .buffer-carga { display: flex; gap: 5px; margin: 1rem 0; }
-        .buffer-carga-bloque { width: 30px; height: 15px; background-color: var(--color-borde); transition: background-color 0.2s; }
-        #texto-precarga { margin-top: 1rem; font-size: 0.9rem; height: 20px; }
-        .registro-contenedor { width: 100%; max-width: 800px; text-align: center; }
-        .registro-contenedor h2 { color: var(--color-secundario); margin-bottom: 2rem; font-family: 'Orbitron', sans-serif; }
-        .prompt-entrada { display: flex; justify-content: center; align-items: center; font-size: 1.5rem; margin-bottom: 2rem; background: rgba(0,0,0,0.2); padding: 1rem; border: 1px solid var(--color-borde); }
-        #jugador-input { min-height: 30px; text-transform: uppercase; }
-        .cursor { width: 10px; height: 1.5rem; background: var(--color-texto-principal); animation: parpadeo 1s step-end infinite; }
-        @keyframes parpadeo { from, to { background-color: transparent; } 50% { background-color: var(--color-texto-principal); } }
-        .matriz-entrada { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; width: 100%; }
-        .matriz-entrada button { font-family: 'Roboto Mono', monospace; font-size: 1.2rem; padding: 15px 5px; background-color: var(--color-contenedor); color: var(--color-texto-principal); border: 1px solid var(--color-borde); cursor: pointer; transition: all 0.2s; }
-        .matriz-entrada button:hover:not(:disabled) { background-color: var(--color-primario); color: var(--color-fondo); border-color: var(--color-primario); }
-        .matriz-entrada button:disabled { opacity: 0.4; cursor: not-allowed; }
-        .delete-key { grid-column: span 4; }
-        .accept-key { grid-column: span 6; background-color: var(--color-secundario); color: var(--color-fondo); font-weight: bold; }
-        #menu-screen h1 { font-family: 'Orbitron', sans-serif; font-size: 3rem; color: var(--color-secundario); text-shadow: 0 0 15px var(--color-secundario); margin-bottom: 1rem; }
-        #nodo-activo-display { margin-bottom: 2rem; color: var(--color-primario); }
-        .menu-opciones button { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; display: block; width: 450px; padding: 1rem; margin: 0.8rem 0; background: transparent; color: var(--color-texto-principal); border: 2px solid var(--color-borde); cursor: pointer; transition: all 0.3s; }
-        .menu-opciones button:hover { color: var(--color-secundario); border-color: var(--color-secundario); box-shadow: 0 0 15px var(--color-secundario); }
-        .semilla-contenedor { margin-top: 1rem; display: flex; align-items: center; justify-content: center; width: 450px; }
-        .semilla-contenedor input { background: var(--color-contenedor); border: 1px solid var(--color-borde); color: var(--color-texto-principal); padding: 0.5rem; font-family: 'Roboto Mono', monospace; text-align: center; flex-grow: 1; }
-        .semilla-contenedor button { width: 150px; font-size: 0.9rem !important; margin-left: 10px; padding: 0.5rem !important; }
-        #juego-screen { display: none; grid-template-columns: 250px 1fr 250px; grid-template-rows: auto 1fr; width: 100%; height: 100%; padding: 1rem; gap: 1rem; }
-        #juego-screen.active { display: grid; }
-        #juego-screen.glitch { animation: glitch-anim 0.5s infinite; }
-        .juego-columna { display: flex; flex-direction: column; padding: 1rem; background: rgba(17, 17, 34, 0.5); border: 1px solid var(--color-borde); }
-        #arbol-capacidad { list-style: none; text-align: center; }
-        #arbol-capacidad li { padding: 8px; margin: 4px 0; border: 1px solid transparent; transition: all 0.3s; }
-        #arbol-capacidad .nivel-actual { background: var(--color-secundario); color: var(--color-fondo); font-weight: bold; }
-        #arbol-capacidad .nivel-seguro { color: var(--color-primario); font-weight: bold; }
-        #arbol-capacidad .nivel-superado { opacity: 0.5; }
-        .columna-central { grid-column: 2 / 3; grid-row: 1 / 3; }
-        #pregunta-contenedor { min-height: 150px; padding: 2rem; margin-bottom: 2rem; font-size: 1.5rem; text-align: center; display: flex; justify-content: center; align-items: center; border: 1px solid var(--color-borde); }
-        #respuestas-contenedor { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1rem; height: 400px; }
-        .respuesta-btn { font-family: 'Roboto Mono', monospace; font-size: 1.2rem; background: var(--color-contenedor); border: 1px solid var(--color-borde); color: var(--color-texto-principal); cursor: pointer; transition: all 0.3s; display: flex; justify-content: flex-start; align-items: center; padding: 1rem; }
-        .respuesta-btn:hover { border-color: var(--color-secundario); }
-        .respuesta-btn.seleccionada { background-color: var(--color-secundario); color: var(--color-fondo); }
-        .respuesta-btn.correcta { background-color: var(--color-correcto); color: var(--color-fondo); animation: pulso-correcto 1s 2; }
-        .respuesta-btn.incorrecta { background-color: var(--color-incorrecto); color: var(--color-fondo); }
-        .respuesta-btn.oculta { opacity: 0; pointer-events: none; }
-        .respuesta-letra { color: var(--color-secundario); margin-right: 1rem; }
-        @keyframes pulso-correcto { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        @keyframes glitch-anim { 0% { transform: translate(0); } 20% { transform: translate(-3px, 3px); } 40% { transform: translate(-3px, -3px); } 60% { transform: translate(3px, 3px); } 80% { transform: translate(3px, -3px); } 100% { transform: translate(0); } }
-        .lore-contenedor { max-width: 800px; text-align: center; border: 2px solid var(--color-secundario); padding: 3rem; background: var(--color-contenedor); }
-        .lore-contenedor h2 { font-family: 'Orbitron'; color: var(--color-secundario); margin-bottom: 1.5rem; }
-        .lore-contenedor p { text-align: justify; line-height: 1.8; margin-bottom: 2rem; }
-        .lore-contenedor button { font-family: 'Orbitron'; font-size: 1rem; padding: 0.8rem 1.5rem; background: transparent; color: var(--color-texto-principal); border: 1px solid var(--color-borde); cursor: pointer; }
-        .fragmento-conocimiento { max-width: 600px; text-align: center; padding: 2rem; background: var(--color-contenedor); border: 1px solid var(--color-primario); }
-        .fragmento-conocimiento h3 { color: var(--color-primario); margin-bottom: 1rem; }
-        #salon-screen { justify-content: flex-start; padding-top: 5vh; }
-        #salon-screen h2 { font-family: 'Orbitron'; color: var(--color-secundario); margin-bottom: 2rem; }
-        .salon-contenido { display: flex; gap: 2rem; width: 100%; max-width: 1200px; justify-content: center; }
-        #tabla-puntuaciones { width: 70%; border-collapse: collapse; }
-        #tabla-puntuaciones th, #tabla-puntuaciones td { padding: 0.8rem; text-align: left; border-bottom: 1px solid var(--color-borde); }
-        #tabla-puntuaciones th { color: var(--color-primario); }
-        #logros-contenedor { width: 30%; }
-        #logros-contenedor h3 { color: var(--color-primario); margin-bottom: 1rem; text-align: center; }
-        #logros-lista { list-style: none; }
-        #logros-lista li { background: var(--color-contenedor); margin-bottom: 0.5rem; padding: 0.5rem; border-left: 3px solid var(--color-borde); }
-        #logros-lista li.desbloqueado { border-left-color: var(--color-secundario); color: var(--color-secundario); }
-        .salon-botones { margin-top: 2rem; }
-        .salon-botones button { font-family: 'Orbitron'; font-size: 1.1rem; padding: 0.8rem 1.5rem; margin: 0 1rem; background-color: var(--color-contenedor); color: var(--color-texto-principal); border: 1px solid var(--color-borde); cursor: pointer; transition: all 0.3s ease; }
-        .salon-botones button:hover { border-color: var(--color-secundario); color: var(--color-secundario); }
-        #semilla-final-display { margin-top: 1.5rem; color: var(--color-primario); font-size: 0.9rem; }
-        #fullscreen-enforcer-overlay h2 { color: var(--color-secundario); margin-bottom: 1.5rem; }
-        #fullscreen-enforcer-overlay p { margin-bottom: 2rem; }
-        #fullscreen-enforcer-overlay button { font-family: 'Orbitron'; font-size: 1.2rem; padding: 1rem 2rem; background: var(--color-secundario); color: var(--color-fondo); border: none; cursor: pointer; }
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+
+        :root {
+            --color-bg: #050a15; --color-panel: #0a1128;
+            --color-success: #39ff14; --color-error: #ff003c; --color-text: #ffffff;
+            --theme-primary: #00f0ff; --theme-glow: rgba(0, 240, 255, 0.5); --theme-glow-dim: rgba(0, 240, 255, 0.1);
+            --font-retro: 'VT323', monospace; --font-modern: 'Montserrat', sans-serif;
+        }
+
+        body.theme-informatica { --theme-primary: #00f0ff; --theme-glow: rgba(0, 240, 255, 0.5); --theme-glow-dim: rgba(0, 240, 255, 0.1); }
+        body.theme-calculos { --theme-primary: #39ff14; --theme-glow: rgba(57, 255, 20, 0.5); --theme-glow-dim: rgba(57, 255, 20, 0.1); }
+        body.theme-palabras { --theme-primary: #ff00ff; --theme-glow: rgba(255, 0, 255, 0.5); --theme-glow-dim: rgba(255, 0, 255, 0.1); }
+        body.theme-general { --theme-primary: #ffaa00; --theme-glow: rgba(255, 170, 0, 0.5); --theme-glow-dim: rgba(255, 170, 0, 0.1); }
+        body.theme-duel { --theme-primary: #ff003c; --theme-glow: rgba(255, 0, 60, 0.6); --theme-glow-dim: rgba(255, 0, 60, 0.2); }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; user-select: none; -webkit-user-drag: none; }
+        /* Control total del layout para evitar scroll (desplazamiento) y superposiciones */
+        html, body { height: 100vh; width: 100vw; overflow: hidden; touch-action: none; }
+
+        body {
+            background-color: var(--color-bg); color: var(--color-text); font-family: var(--font-modern); position: relative;
+            background-image: radial-gradient(circle at 50% 50%, var(--theme-glow-dim) 0%, transparent 60%), linear-gradient(var(--theme-glow-dim) 1px, transparent 1px), linear-gradient(90deg, var(--theme-glow-dim) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px; transition: background-image 0.5s ease;
+        }
+
+        #network-status {
+            position: fixed; bottom: 1.5vh; left: 1.5vw; z-index: 10000; font-family: var(--font-retro); font-size: 1.5rem;
+            padding: 0.5vh 1vw; border-radius: 5px; border: 1px solid; transition: all 0.3s;
+        }
+        .status-online { color: var(--color-success); border-color: var(--color-success); background: rgba(57, 255, 20, 0.1); text-shadow: 0 0 10px var(--color-success);}
+        .status-offline { color: var(--color-error); border-color: var(--color-error); background: rgba(255, 0, 60, 0.1); text-shadow: 0 0 10px var(--color-error);}
+
+        #error-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(255, 0, 60, 0.35); pointer-events: none; z-index: 9998; opacity: 0; transition: opacity 0.1s; }
+        #error-flash.active { opacity: 1; }
+
+        @keyframes screenShake { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 10%, 30%, 50%, 70%, 90% { transform: translate(-10px, 5px) rotate(-1deg); } 20%, 40%, 60%, 80% { transform: translate(10px, -5px) rotate(1deg); } }
+        body.shake-active { animation: screenShake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+        #app-container { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+        .screen { width: 100%; height: 100%; display: flex; flex-direction: column; position: absolute; top: 0; left: 0; transition: opacity 0.5s ease; background: var(--color-bg); z-index: 10; overflow: hidden; }
+        .hidden { opacity: 0; pointer-events: none; z-index: -1; }
+
+        .menu-screen { justify-content: center; align-items: center; text-align: center; background: radial-gradient(circle at center, var(--color-panel) 0%, #02050a 100%); padding: 2vh 2vw;}
+        .title-main { font-size: clamp(2rem, 5vh, 4rem); font-weight: 900; color: var(--theme-primary); text-shadow: 0 0 20px var(--theme-glow), 0 5px 0 #002244; margin-bottom: 1vh; line-height: 1.1; letter-spacing: 2px; transition: color 0.5s, text-shadow 0.5s;}
+        .title-sub { font-size: clamp(1rem, 2vh, 1.5rem); color: #fff; margin-bottom: 3vh; font-family: var(--font-retro); letter-spacing: 2px; }
+        
+        .btn-action { background: linear-gradient(to bottom, var(--theme-primary), #002244); border: 2px solid var(--theme-primary); color: white; font-size: clamp(1rem, 2.5vh, 1.5rem); font-weight: bold; padding: 1.5vh 3vw; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 1vh 2vh var(--theme-glow), inset 0 2px 5px rgba(255,255,255,0.5); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-family: var(--font-modern); clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); margin-top: 2vh; text-shadow: 1px 1px 2px #000; }
+        .btn-action:hover { transform: translateY(2px) scale(0.98); filter: brightness(1.2); } 
+        .btn-action:active { transform: scale(0.95) translateY(4px); } 
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: grayscale(1); }
+
+        .player-container { display: flex; width: 100%; max-width: 1000px; height: 65vh; gap: 2vw; justify-content: center; align-items: stretch; overflow: hidden; }
+        .keyboard-panel { flex: 1.5; background: var(--theme-glow-dim); border: 1px solid var(--theme-primary); border-radius: 10px; padding: 2vh 2vw; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 0 0 20px var(--theme-glow-dim); transition: all 0.5s;}
+        #player-input { width: 100%; background: #000; border: 2px solid var(--theme-primary); color: var(--theme-primary); font-size: clamp(1.5rem, 4vh, 2.5rem); font-family: var(--font-retro); text-align: center; padding: 1vh; margin-bottom: 1vh; border-radius: 5px; text-transform: uppercase; outline: none; transition: all 0.5s;}
+        .keyboard { display: flex; flex-direction: column; gap: 1vh; width: 100%; flex-grow: 1; justify-content: center;}
+        .key-row { display: flex; justify-content: center; gap: 0.5vw; }
+        .key { background: #112; border: 1px solid var(--theme-primary); color: #fff; padding: 1.5vh 0; min-width: 25px; flex-grow: 1; text-align: center; font-family: var(--font-modern); font-weight: bold; border-radius: 4px; cursor: pointer; transition: all 0.1s; font-size: clamp(1rem, 2vh, 1.5rem); box-shadow: 0 3px 0 #002244; }
+        .key:active { transform: translateY(3px); box-shadow: 0 0 0 #002244; background: var(--theme-primary); color: #000;} .key.special { background: #003366; }
+        
+        .saved-players-panel { flex: 1; background: rgba(0, 0, 0, 0.5); border: 1px solid #444; border-radius: 10px; padding: 2vh; display: flex; flex-direction: column; overflow: hidden; }
+        .saved-players-panel h3 { color: var(--theme-primary); font-family: var(--font-retro); font-size: clamp(1.2rem, 3vh, 1.8rem); margin-bottom: 1vh; border-bottom: 1px solid #444; padding-bottom: 1vh; }
+        .player-list { display: flex; flex-direction: column; gap: 1vh; overflow: hidden; flex-grow: 1; justify-content: flex-start;}
+        .player-item { display: flex; justify-content: space-between; align-items: center; background: var(--theme-glow-dim); border: 1px solid rgba(255,255,255,0.1); padding: 1.5vh 1vw; border-radius: 5px; cursor: pointer; transition: all 0.2s;}
+        .player-item:hover { background: rgba(255,255,255,0.1); border-color: var(--theme-primary); transform: translateX(5px); }
+        .player-name { font-family: var(--font-retro); font-size: clamp(1.2rem, 3vh, 1.5rem); color: #fff; letter-spacing: 2px;}
+        .player-delete { background: var(--color-error); color: #fff; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1.2rem; transition: transform 0.2s; }
+        .player-delete:hover { transform: scale(1.2); box-shadow: 0 0 10px var(--color-error); }
+
+        .modules-layout { display: flex; width: 100%; max-width: 1000px; height: 60vh; gap: 2vw; align-items: stretch; justify-content: center; margin: 0 auto; overflow: hidden;}
+        .modules-grid { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 1.5vh 1.5vw; height: 100%; overflow: hidden;}
+        .module-btn { background: linear-gradient(135deg, var(--color-panel) 0%, #0d1b3e 100%); border: 2px solid #333; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; padding: 1vh;}
+        
+        .module-btn[data-module="informatica"] { border-color: rgba(0, 240, 255, 0.3); } .module-btn[data-module="informatica"]:hover { border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.4); transform: scale(0.98); z-index: 2;} .module-btn[data-module="informatica"] .module-icon { color: #00f0ff; text-shadow: 0 0 10px #00f0ff; }
+        .module-btn[data-module="calculos"] { border-color: rgba(57, 255, 20, 0.3); } .module-btn[data-module="calculos"]:hover { border-color: #39ff14; box-shadow: 0 0 15px rgba(57, 255, 20, 0.4); transform: scale(0.98); z-index: 2;} .module-btn[data-module="calculos"] .module-icon { color: #39ff14; text-shadow: 0 0 10px #39ff14; }
+        .module-btn[data-module="palabras"] { border-color: rgba(255, 0, 255, 0.3); } .module-btn[data-module="palabras"]:hover { border-color: #ff00ff; box-shadow: 0 0 15px rgba(255, 0, 255, 0.4); transform: scale(0.98); z-index: 2;} .module-btn[data-module="palabras"] .module-icon { color: #ff00ff; text-shadow: 0 0 10px #ff00ff; }
+        .module-btn[data-module="general"] { border-color: rgba(255, 170, 0, 0.3); } .module-btn[data-module="general"]:hover { border-color: #ffaa00; box-shadow: 0 0 15px rgba(255, 170, 0, 0.4); transform: scale(0.98); z-index: 2;} .module-btn[data-module="general"] .module-icon { color: #ffaa00; text-shadow: 0 0 10px #ffaa00; }
+
+        .module-icon { font-size: clamp(3rem, 6vh, 4rem); margin-bottom: 1vh; transition: color 0.3s;}
+        .module-name { font-family: var(--font-modern); font-weight: 900; font-size: clamp(1rem, 2vh, 1.3rem); color: #fff; text-transform: uppercase; text-align: center;}
+        
+        .battery-container { display: flex; gap: 2px; width: 85%; height: 2vh; min-height: 15px; border: 2px solid #555; border-radius: 4px; padding: 2px; margin-top: 1.5vh; background: rgba(0,0,0,0.6); transition: border-color 0.3s;}
+        .battery-segment { flex: 1; background: rgba(255,255,255,0.1); border-radius: 1px; transition: all 0.3s; }
+        .battery-segment.filled { background: var(--theme-primary); box-shadow: 0 0 5px var(--theme-primary); }
+        
+        .side-panel { flex: 0 0 250px; display: flex; flex-direction: column; gap: 2vh; overflow: hidden;}
+        .vault-panel, .arena-btn-panel { background: linear-gradient(180deg, var(--color-panel) 0%, #050a15 100%); border: 2px solid var(--theme-primary); border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 0 30px var(--theme-glow-dim), 0 0 20px var(--theme-glow-dim); padding: 2vh; flex: 1; overflow: hidden;}
+        .vault-icon { font-size: clamp(2.5rem, 5vh, 4rem); margin-bottom: 1vh; animation: float 3s infinite ease-in-out; }
+        .vault-title { color: #fff; font-family: var(--font-modern); font-weight: bold; font-size: clamp(0.9rem, 1.5vh, 1.1rem); text-transform: uppercase; text-align: center; letter-spacing: 2px; }
+        .vault-amount { color: var(--color-success); font-family: var(--font-retro); font-size: clamp(1.8rem, 3.5vh, 2.5rem); font-weight: bold; text-shadow: 0 0 15px rgba(57, 255, 20, 0.5); margin-top: 1vh; text-align: center; line-height: 1;}
+        
+        .btn-arena { background: #ff003c; border-color: #ff003c; box-shadow: 0 0 15px rgba(255,0,60,0.5); width: 100%; font-size: 1.2rem; padding: 1.5vh;}
+        .btn-arena:hover { background: #ff3366; box-shadow: 0 0 25px rgba(255,0,60,0.8); }
+
+        #arena-list { display: flex; flex-direction: column; gap: 1.5vh; width: 100%; max-width: 800px; height: 50vh; overflow: hidden; background: rgba(0,0,0,0.5); border: 2px solid var(--theme-primary); border-radius: 10px; padding: 2vh;}
+        .online-player { display: flex; justify-content: space-between; align-items: center; background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.3); padding: 2vh 2vw; border-radius: 8px; transition: all 0.2s; }
+        .online-player:hover { background: rgba(0, 240, 255, 0.2); border-color: var(--theme-primary); transform: translateX(5px); }
+        .online-player.is-bot { border-color: rgba(255, 170, 0, 0.5); background: rgba(255, 170, 0, 0.1); }
+        .online-info { display: flex; flex-direction: column; align-items: flex-start;}
+        .online-name { font-family: var(--font-retro); font-size: clamp(1.5rem, 3vh, 2rem); color: #fff; letter-spacing: 2px;}
+        .online-gb { font-family: var(--font-modern); font-size: clamp(0.9rem, 1.8vh, 1.1rem); color: var(--color-success); font-weight: bold;}
+        .btn-challenge { background: var(--color-error); border: 1px solid #ff003c; color: white; padding: 1.5vh 2vw; border-radius: 5px; font-family: var(--font-retro); font-size: clamp(1.2rem, 2.5vh, 1.5rem); cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px rgba(255,0,60,0.5); transition: all 0.2s;}
+        .btn-challenge:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,0,60,0.8); }
+
+        /* DUEL SCREEN & SCOREBOARD NUEVO */
+        #screen-duel { background: radial-gradient(circle at center, #3a000d 0%, #050000 100%); }
+        .duel-header { display: flex; justify-content: space-between; width: 100%; height: 15vh; padding: 1vh 5vw; border-bottom: 2px solid var(--color-error); background: rgba(0,0,0,0.8); box-shadow: 0 0 20px var(--color-error); align-items: center;}
+        
+        .duel-player-box { display: flex; flex-direction: column; align-items: center; width: 30%; gap: 1vh;}
+        .duel-name { font-family: var(--font-modern); font-weight: 900; font-size: clamp(1.2rem, 2.5vh, 1.8rem); color: #fff; text-align: center;}
+        .duel-score-num { font-family: var(--font-retro); font-size: clamp(3rem, 6vh, 5rem); color: var(--theme-primary); text-shadow: 0 0 15px var(--theme-primary); background: rgba(0,0,0,0.5); padding: 0 1.5vw; border-radius: 10px; border: 1px solid var(--theme-primary);}
+        .duel-score-num.enemy { color: #ffaa00; border-color: #ffaa00; text-shadow: 0 0 15px #ffaa00; }
+        
+        .duel-vs { font-family: var(--font-retro); font-size: clamp(2rem, 5vh, 4rem); color: var(--color-error); text-shadow: 0 0 20px var(--color-error); animation: pulse-correct 0.5s infinite;}
+        
+        .duel-timer { font-family: var(--font-retro); font-size: clamp(3rem, 8vh, 6rem); color: var(--color-gold); text-shadow: 0 0 30px #ffaa00; margin: 1vh 0; line-height: 1;}
+        .duel-question-container { width: 90%; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 85vh; overflow: hidden; padding-top: 2vh;}
+
+        /* PANTALLA DE JUEGO (SOLO) */
+        #header-game { display: flex; justify-content: space-between; align-items: center; padding: 0 2vw; background: rgba(0, 10, 25, 0.9); border-bottom: 2px solid var(--theme-primary); box-shadow: 0 5px 20px var(--theme-glow-dim); z-index: 5; height: 8vh; transition: border-color 0.5s, box-shadow 0.5s;}
+        .btn-exit { background: transparent; border: 1px solid var(--color-error); color: var(--color-error); font-family: var(--font-modern); font-weight: bold; padding: 1vh 1vw; border-radius: 5px; cursor: pointer; transition: all 0.2s; font-size: clamp(0.9rem, 2vh, 1.2rem); }
+        .btn-exit:hover { background: var(--color-error); color: #fff; box-shadow: 0 0 10px var(--color-error);}
+        .score-board { display: flex; align-items: center; gap: 1vw; }
+        .score-label { font-size: clamp(0.9rem, 2vh, 1.2rem); color: #aaa; text-transform: uppercase;}
+        .score-value { font-size: clamp(1.5rem, 3.5vh, 2.5rem); font-family: var(--font-retro); color: var(--color-success); font-weight: bold; text-shadow: 0 0 10px rgba(57, 255, 20, 0.5); }
+        .cards-left { font-size: clamp(1.2rem, 2.5vh, 1.8rem); font-family: var(--font-retro); color: var(--theme-primary); transition: color 0.5s;}
+
+        #board-container { height: 92vh; padding: 2vh 2vw; display: flex; justify-content: center; align-items: center; overflow: hidden; perspective: 1500px; }
+        #grid-cards { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(4, 1fr); gap: 1.5vh 1.5vw; width: 100%; max-width: 1200px; height: 100%; }
+
+        .card { perspective: 1000px; cursor: pointer; width: 100%; height: 100%; animation: float 4s ease-in-out infinite; }
+        .card:nth-child(2n) { animation-delay: 0.5s; } .card:nth-child(3n) { animation-delay: 1s; } .card:nth-child(5n) { animation-delay: 1.5s; }
+        .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; }
+        .card.revealed .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 8px; border: 2px solid; box-shadow: 0 4px 8px rgba(0,0,0,0.5); overflow: hidden; }
+        .card-front { background: linear-gradient(135deg, var(--color-panel) 0%, #0d1b3e 100%); border-color: var(--theme-glow); color: var(--theme-primary); transition: all 0.3s; }
+        .card-front::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(0deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 10px 10px; z-index: 1; pointer-events: none; }
+        .card-front:hover { background: linear-gradient(135deg, #0d1b3e 0%, #162a5e 100%); border-color: var(--theme-primary); transform: translateY(2px) scale(0.98); box-shadow: inset 0 0 20px var(--theme-glow); }
+        .card-number { font-size: clamp(3rem, 8vh, 6rem); font-family: var(--font-retro); font-weight: bold; z-index: 2; text-shadow: 0 0 20px var(--theme-glow); transition: text-shadow 0.5s;}
+        .card-back { background: #050a15; transform: rotateY(180deg); font-family: var(--font-retro); }
+        .card.state-won .card-back { background: radial-gradient(circle, #0a2e12 0%, #031205 100%); border-color: var(--color-success); color: var(--color-success); }
+        .card.state-lost .card-back { background: radial-gradient(circle, #3e0a15 0%, #150307 100%); border-color: var(--color-error); color: var(--color-error); }
+        .card-prize { font-size: clamp(1.2rem, 3.5vh, 2.5rem); font-weight: bold; text-shadow: 0 0 10px currentColor; z-index: 2;}
+        .card-status-icon { margin-top: 5px; z-index: 2; font-size: clamp(2rem, 5vh, 3.5rem); display: flex; justify-content: center; align-items: center;}
+
+        /* MODALES */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(2, 5, 10, 0.95); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; padding: 2vh; overflow: hidden; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { background: linear-gradient(180deg, var(--color-panel) 0%, #050a15 100%); border: 2px solid var(--theme-primary); border-radius: 12px; width: 100%; max-width: 1100px; height: auto; max-height: 96vh; padding: 4vh 3vw; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.9); transform: scale(1.05); transition: transform 0.3s, border-color 0.5s; display: flex; flex-direction: column; justify-content: center; gap: 3vh; overflow: hidden;}
+        .modal-overlay.active .modal-content { transform: scale(1); }
+
+        .modal-header { display: flex; flex-direction: column; align-items: center; transition: all 0.3s ease; }
+        .prize-alert { font-size: clamp(1.2rem, 2.5vh, 1.5rem); color: var(--theme-primary); text-transform: uppercase; letter-spacing: 2px; transition: color 0.5s;}
+        .prize-amount { font-size: clamp(3rem, 6vh, 5rem); font-family: var(--font-retro); color: #fff; font-weight: bold; text-shadow: 0 0 15px var(--theme-primary); line-height: 1; transition: color 0.3s, text-shadow 0.3s;}
+        .question-text { font-size: clamp(1.5rem, 4vh, 2.8rem); font-weight: 700; margin: 1vh 0; line-height: 1.2; color: #fff;}
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 2vh 2vw; width: 100%; flex-grow: 1; overflow: hidden;}
+        
+        .option-btn { background: var(--theme-glow-dim); border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 2vh; font-size: clamp(1.1rem, 2.5vh, 1.6rem); font-family: var(--font-modern); font-weight: bold; color: #ddd; cursor: pointer; transition: all 0.2s; text-align: left; display: flex; align-items: center; justify-content: flex-start; width: 100%; height: 100%; min-height: 10vh; box-sizing: border-box; overflow: hidden;}
+        .option-btn::before { content: attr(data-letter) ":"; color: var(--theme-primary); margin-right: 15px; font-size: 1.5rem; font-weight: 900; transition: color 0.5s;}
+        .option-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--theme-primary); color: #fff; transform: scale(0.98); box-shadow: inset 0 0 15px var(--theme-glow);}
+        .option-btn.selected-correct { background: rgba(57, 255, 20, 0.9); border-color: var(--color-success); color: #000; animation: pulse-correct 0.5s; box-shadow: inset 0 0 20px rgba(57,255,20,0.5);}
+        .option-btn.selected-correct::before { color: #000; }
+        .option-btn.selected-wrong { background: rgba(255, 0, 60, 0.9); border-color: var(--color-error); color: #FFF; animation: shake-wrong 0.4s; box-shadow: inset 0 0 20px rgba(255,0,60,0.5);}
+        .option-btn.selected-wrong::before { color: #FFF; }
+        .option-btn.reveal-correct { background: rgba(57, 255, 20, 0.9); border-color: var(--color-success); color: #000; }
+        .option-btn.reveal-correct::before { color: #000; }
+
+        /* MINI MODAL DUELOS */
+        #modal-challenge .modal-content { max-width: 600px; border-color: var(--color-error); box-shadow: 0 0 30px rgba(255,0,60,0.5); }
+        .duel-topic-btn { background: #111; border: 2px solid #555; color: #fff; padding: 2vh; font-family: var(--font-modern); font-size: clamp(1rem, 2.5vh, 1.4rem); font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.2s;}
+        .duel-topic-btn:hover, .duel-topic-btn.selected { border-color: var(--theme-primary); background: var(--theme-glow-dim); box-shadow: inset 0 0 15px var(--theme-glow); transform: scale(0.98);}
+
+        /* TEXTO FLOTANTE GIGANTE EN EL CENTRO */
+        .floating-feedback { 
+            position: fixed; top: 50% !important; left: 50% !important; 
+            font-size: clamp(3rem, 10vh, 6rem); font-family: var(--font-modern); font-weight: 900; 
+            text-transform: uppercase; pointer-events: none; z-index: 100000; 
+            animation: float-feedback 1.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            letter-spacing: 5px; text-align: center;
+        }
+        .floating-feedback.success { color: var(--color-success); text-shadow: 0 0 30px var(--color-success), 0 5px 20px rgba(0,0,0,1); }
+        .floating-feedback.error { color: var(--color-error); text-shadow: 0 0 30px var(--color-error), 0 5px 20px rgba(0,0,0,1); }
+        .floating-feedback.denied { font-family: var(--font-retro); font-size: 4rem; color: #fff; text-shadow: 0 0 15px #f00, 0 0 40px #f00; animation: scanline 0.5s infinite alternate; }
+
+        @keyframes heavy-shake { 0% { transform: translate(10px, 10px) rotate(2deg); } 25% { transform: translate(-10px, -10px) rotate(-2deg); } 50% { transform: translate(15px, -5px) rotate(3deg); } 75% { transform: translate(-15px, 5px) rotate(-3deg); } 100% { transform: translate(0px, 0px) rotate(0deg); } }
+        @keyframes strobe-red { 0%, 49% { background-color: rgba(180, 0, 0, 0.95); } 50%, 100% { background-color: rgba(20, 0, 0, 0.98); } }
+        
+        #security-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(150, 0, 0, 0.95); z-index: 20000; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 2vh; opacity: 0; pointer-events: none; transition: opacity 0.1s; }
+        #security-overlay.active { opacity: 1; pointer-events: auto; animation: heavy-shake 0.2s infinite alternate, strobe-red 0.15s infinite; }
+        .crt-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; }
+        .sec-title { font-family: var(--font-retro); font-size: clamp(3rem, 8vh, 6rem); color: #fff; text-shadow: 4px 4px 0 #000; letter-spacing: 5px; z-index: 2;}
+        .sec-msg { font-family: var(--font-modern); font-size: clamp(1.2rem, 3vh, 2rem); color: #fff; font-weight: bold; margin-top: 2vh; text-transform: uppercase; max-width: 800px; line-height: 1.4; text-shadow: 2px 2px 0 #000; z-index: 2;}
+        .sec-icon { font-size: 8rem; margin-bottom: 2vh; animation: pulse-correct 0.5s infinite; z-index: 2; text-shadow: 0 0 30px #ff0000;}
+        #btn-sec-ack { display: none; z-index: 3; margin-top: 5vh; border-color: #fff; background: #000; color: #f00; font-family: var(--font-retro); font-size: 2rem;}
+        #btn-sec-ack:hover { background: #f00; color: #fff; }
+
+        @keyframes scanline { 0% { transform: translateX(-10%); } 100% { transform: translateX(10%); } }
+        @keyframes pulse-correct { 0% { transform: scale(1); } 50% { transform: scale(0.98); } 100% { transform: scale(1); } }
+        @keyframes shake-wrong { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        
+        @keyframes float-feedback { 
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); } 
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); } 
+        }
+
+        .particle { position: absolute; pointer-events: none; z-index: 9999; font-size: 1.5rem; animation: particle-burst 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes particle-burst { 0% { transform: translate(-50%, -50%) scale(0.5) rotate(0deg); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(1.5) rotate(var(--rot)); opacity: 0; } }
+
+        @media (max-width: 800px) {
+            .modules-layout { flex-direction: column; height: auto; flex-grow: 1; }
+            .side-panel { flex: none; width: 100%; flex-direction: row; gap: 1vw;}
+            .vault-panel, .arena-btn-panel { flex: 1; padding: 1vh; min-height: 10vh; }
+            .vault-icon { font-size: 2rem; margin: 0; }
+            .vault-title { font-size: 0.8rem; }
+            .vault-amount { font-size: 1.5rem; }
+            .player-container { flex-direction: column; height: auto; flex-grow: 1; }
+            .options-grid { grid-template-columns: 1fr; }
+            .modal-content { padding: 3vh 4vw; }
+            .duel-header { height: auto; padding: 1vh 2vw; }
+            .duel-vs { font-size: 2rem;}
+        }
+        @media (max-width: 500px) {
+            #grid-cards { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(5, 1fr); }
+            .btn-exit { padding: 0.5vh; font-size: 0.8rem; }
+        }
     </style>
 </head>
-<body>
+<body class="theme-informatica">
 
-    <!-- Contenedores de Pantallas -->
-    <div id="precarga-screen" class="screen active"></div>
-    <div id="registro-screen" class="screen"></div>
-    <div id="menu-screen" class="screen"></div>
-    <div id="juego-screen" class="screen"></div>
-    <div id="lore-interludio-screen" class="screen"></div>
-    <div id="salon-screen" class="screen"></div>
+    <div id="network-status" class="status-offline">📡 MODO LOCAL (MEMORIA TEMPORAL)</div>
+    <div id="error-flash"></div>
 
-    <!-- Superposiciones -->
-    <div id="fragmento-overlay" class="overlay"></div>
-    <div id="fullscreen-enforcer-overlay" class="overlay"></div>
+    <div id="security-overlay">
+        <div class="crt-lines"></div>
+        <div class="sec-icon" id="sec-icon-display">🚨</div>
+        <div class="sec-title" id="sec-title-text">ALERTA DE SEGURIDAD</div>
+        <div class="sec-msg" id="sec-msg-text">No abandones la terminal.</div>
+        <button class="btn-action" id="btn-sec-ack">RESTAURAR CONEXIÓN</button>
+    </div>
 
+    <div id="app-container">
+        <!-- PANTALLA 1: BIENVENIDA -->
+        <div id="screen-welcome" class="screen menu-screen">
+            <h1 class="title-main">LA RED<br>OMNI-VERSAL</h1>
+            <h2 class="title-sub">Iniciando Enlace de Red...</h2>
+            <button class="btn-action" id="btn-goto-players">Conectar al Sistema</button>
+        </div>
+
+        <!-- PANTALLA 2: GESTIÓN DE JUGADORES -->
+        <div id="screen-players" class="screen menu-screen hidden">
+            <h1 class="title-main" style="font-size: clamp(2rem, 6vh, 3.5rem);">IDENTIFICACIÓN</h1>
+            <h2 class="title-sub" style="margin-bottom: 1vh;">Ingresa tu alias para guardar progreso</h2>
+            
+            <div class="player-container">
+                <div class="keyboard-panel">
+                    <input type="text" id="player-input" placeholder="TU ALIAS AQUÍ" readonly>
+                    <div class="keyboard" id="virtual-keyboard"></div>
+                    <button class="btn-action" id="btn-save-player" style="width: 100%; padding: 1.5vh; font-size: 1.2rem;">Crear / Cargar Perfil</button>
+                </div>
+                
+                <div class="saved-players-panel">
+                    <h3>PERFILES LOCALES (MÁX 4)</h3>
+                    <div class="player-list" id="player-list-container"></div>
+                </div>
+            </div>
+            <button class="btn-action" id="btn-back-welcome" style="margin-top: 1vh; font-size: 1rem; padding: 1vh 2vw; background: #333; border-color: #555;">← Volver</button>
+        </div>
+
+        <!-- PANTALLA 3: MENÚ PRINCIPAL -->
+        <div id="screen-modules" class="screen menu-screen hidden">
+            <h1 class="title-main" style="font-size: clamp(1.8rem, 5vh, 3rem); margin-bottom: 0;">MENÚ PRINCIPAL</h1>
+            <h2 class="title-sub" id="welcome-player-text" style="margin-bottom: 2vh;">Bienvenido. Selecciona tu disciplina.</h2>
+            
+            <div class="modules-layout">
+                <div class="modules-grid">
+                    <div class="module-btn" data-module="informatica">
+                        <div class="module-icon">💻</div>
+                        <div class="module-name" style="color:#00f0ff">Informática</div>
+                        <div class="battery-container" id="prog-informatica"></div>
+                    </div>
+                    <div class="module-btn" data-module="calculos">
+                        <div class="module-icon">🧮</div>
+                        <div class="module-name" style="color:#39ff14">Cálculos Matemáticos</div>
+                        <div class="battery-container" id="prog-calculos"></div>
+                    </div>
+                    <div class="module-btn" data-module="palabras">
+                        <div class="module-icon">📖</div>
+                        <div class="module-name" style="color:#ff00ff">Lenguaje y Palabras</div>
+                        <div class="battery-container" id="prog-palabras"></div>
+                    </div>
+                    <div class="module-btn" data-module="general">
+                        <div class="module-icon">🌍</div>
+                        <div class="module-name" style="color:#ffaa00">Conocimiento General</div>
+                        <div class="battery-container" id="prog-general"></div>
+                    </div>
+                </div>
+                
+                <div class="side-panel">
+                    <div class="vault-panel">
+                        <div class="vault-icon">🏦</div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="vault-title" id="vault-title-ui">Almacenamiento</div>
+                            <div class="vault-amount" id="ui-vault-total">0 GB</div>
+                        </div>
+                    </div>
+                    <div class="arena-btn-panel">
+                        <div class="vault-icon" style="color:var(--color-error); text-shadow: 0 0 15px #f00;">⚔️</div>
+                        <button class="btn-action btn-arena" id="btn-goto-arena">BATTLE ARENA</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn-action" id="btn-back-players" style="margin-top: 2vh; font-size: 1rem; padding: 1vh 2vw; background: #333; border-color: #555;">← Cambiar Operador</button>
+        </div>
+
+        <!-- PANTALLA 4: TABLERO DE JUEGO (SOLO) -->
+        <div id="screen-game" class="screen hidden">
+            <header id="header-game">
+                <button class="btn-exit" id="btn-exit-game">← SALIR AL MENÚ</button>
+                <div class="score-board">
+                    <span class="score-label">Recolectado:</span>
+                    <span class="score-value" id="ui-score">0 GB</span>
+                </div>
+                <div class="cards-left">
+                    Progreso: <span id="ui-cards-left">0/20</span>
+                </div>
+            </header>
+            <div id="board-container">
+                <div id="grid-cards"></div>
+            </div>
+        </div>
+
+        <!-- PANTALLA 5: RESULTADOS -->
+        <div id="screen-end" class="screen menu-screen hidden">
+            <div class="end-trophy" style="font-size: 8rem;">🏆</div>
+            <h1 class="title-main" style="font-size: clamp(2rem, 6vh, 4rem);">MÓDULO COMPLETADO</h1>
+            <h2 class="title-sub" style="color: #FFF;" id="end-sync-msg">Progreso guardado.</h2>
+            <div class="end-total" id="ui-final-score" style="font-size: 5rem; color: var(--color-success); font-family: var(--font-retro); text-shadow: 0 0 20px rgba(57,255,20,0.5); margin: 2vh 0;">0 GB</div>
+            <button class="btn-action" id="btn-restart">Volver al Menú</button>
+        </div>
+
+        <!-- PANTALLA 6: ARENA LIST -->
+        <div id="screen-arena" class="screen menu-screen hidden">
+            <h1 class="title-main" style="color:var(--color-error); text-shadow: 0 0 20px rgba(255,0,60,0.5);" id="arena-title-ui">ARENA OMNI-VERSAL</h1>
+            <h2 class="title-sub" id="arena-sub-ui" style="margin-bottom: 2vh;">Operadores conectados. Lanza un desafío.</h2>
+            <div id="arena-list">
+                <!-- Se inyectan Jugadores Online o Bots -->
+            </div>
+            <button class="btn-action" id="btn-exit-arena" style="margin-top: 2vh; font-size: 1rem; padding: 1vh 2vw; background: #333; border-color: #555;">← Volver al Menú</button>
+        </div>
+
+        <!-- PANTALLA 7: DUEL MODE (10 PREGUNTAS - CARRERA) -->
+        <div id="screen-duel" class="screen hidden">
+            <div class="duel-header">
+                <div class="duel-player-box">
+                    <span class="duel-name" id="duel-p1-name">Jugador 1</span>
+                    <span class="duel-score-num" id="duel-score-p1">0</span>
+                </div>
+                <div class="duel-vs">VS</div>
+                <div class="duel-player-box">
+                    <span class="duel-name" id="duel-p2-name">Jugador 2</span>
+                    <span class="duel-score-num enemy" id="duel-score-p2">0</span>
+                </div>
+            </div>
+            <div class="duel-question-container">
+                <div class="duel-timer" id="duel-timer">15.0</div>
+                <div style="font-size: clamp(1rem, 2vh, 1.5rem); color:var(--theme-primary); text-transform: uppercase;" id="duel-topic-label">PREGUNTA 1 DE 10</div>
+                <div class="question-text" id="duel-question" style="font-size: clamp(1.8rem, 4vh, 3rem); text-align: center; height: 15vh; display:flex; align-items:center; justify-content:center;">Cargando...</div>
+                <div class="options-grid" id="duel-options" style="margin-top: 2vh;"></div>
+            </div>
+        </div>
+
+        <!-- MODALES DE JUEGO (PREGUNTAS) -->
+        <div id="modal-overlay" class="modal-overlay">
+            <div id="modal-content" class="modal-content">
+                <div class="modal-header">
+                    <span class="prize-alert">Extrayendo datos por</span>
+                    <span class="prize-amount" id="modal-prize">0 GB</span>
+                </div>
+                <div class="question-text" id="modal-question" style="height: 12vh; display:flex; align-items:center; justify-content:center;">¿Cargando datos...?</div>
+                <div class="options-grid" id="modal-options"></div>
+            </div>
+        </div>
+
+        <!-- MODAL DESAFÍOS (ONLINE) -->
+        <div id="modal-challenge" class="modal-overlay">
+            <div class="modal-content" style="max-width: 600px;">
+                <h2 class="title-main" style="color:var(--color-error); font-size:2rem;" id="mc-title">¡DESAFÍO ENTRANTE!</h2>
+                <div class="question-text" id="mc-msg" style="font-size: 1.2rem;">Un operador te ha desafiado.</div>
+                
+                <div style="margin: 2vh 0; color:var(--theme-primary); font-family: var(--font-retro); font-size: 1.5rem;">VOTA TU TEMA:</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1vh;" id="mc-topics">
+                    <button class="duel-topic-btn" data-topic="informatica">Informática</button>
+                    <button class="duel-topic-btn" data-topic="calculos">Cálculos</button>
+                    <button class="duel-topic-btn" data-topic="palabras">Palabras</button>
+                    <button class="duel-topic-btn" data-topic="general">General</button>
+                </div>
+
+                <div style="display: flex; gap: 1vw; justify-content: center; margin-top: 3vh;">
+                    <button class="btn-action" style="background:#333; border-color:#555;" id="btn-mc-cancel">Rechazar</button>
+                    <button class="btn-action" style="background:var(--color-success); border-color:var(--color-success); color:#000;" id="btn-mc-accept" disabled>Aceptar y Luchar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL RESULTADO DUELO -->
+        <div id="modal-duel-result" class="modal-overlay">
+            <div class="modal-content" style="max-width: 700px; text-align: center;">
+                <div style="font-size: 6rem;" id="mdr-icon">🏆</div>
+                <h2 class="title-main" id="mdr-title">¡VICTORIA!</h2>
+                <div class="question-text" id="mdr-msg" style="font-size: 1.5rem; margin-bottom: 2vh;">Has robado GB a tu oponente.</div>
+                <button class="btn-action" id="btn-mdr-close" style="width: 100%;">Volver al Menú</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. Cargar Supabase vía CDN clásico -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 2. Tu código JS Adaptado al nuevo Script SQL -->
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-
-        // === MÓDULO DE LÓGICA PRINCIPAL v1.2 ===
-
-        // --- I. DEFINICIÓN DE CONSTANTES Y DATOS BASE ---
-        const bancoDePreguntas = [ { categoria: "Historia", pregunta: "¿Qué dispositivo histórico de almacenamiento utilizaba agujeros para representar datos?", opciones: ["Cinta magnética", "Disquete", "CD-ROM", "Tarjeta perforada"], respuesta: 3, conocimiento: "Las tarjetas perforadas fueron usadas en telares por Joseph Marie Jacquard en 1804." }, { categoria: "Historia", pregunta: "¿Cuál de estas compañías introdujo el primer disco duro comercial, el RAMAC 305?", opciones: ["Intel", "IBM", "Microsoft", "Apple"], respuesta: 1, conocimiento: "El IBM RAMAC de 1956 pesaba más de una tonelada y almacenaba unos 5 MB." }, { categoria: "Conversion", pregunta: "Un Byte está compuesto por ¿cuántos bits?", opciones: ["4", "16", "8", "2"], respuesta: 2, conocimiento: "El término 'byte' fue acuñado por Werner Buchholz en 1956." }, { categoria: "Conversion", pregunta: "2048 Kilobytes (KB) equivalen a...", opciones: ["2 Gigabytes (GB)", "20 Megabytes (MB)", "2 Megabytes (MB)", "2048 Bytes"], respuesta: 2, conocimiento: "En sistema binario (KiB), 1024 KiB son 1 MiB. En decimal (KB), 1000 KB son 1 MB." }, { categoria: "Hardware", pregunta: "¿Qué tipo de unidad de almacenamiento NO tiene partes móviles y usa memoria flash?", opciones: ["HDD (Hard Disk Drive)", "SSD (Solid State Drive)", "Unidad de cinta", "Lector de CD"], respuesta: 1, conocimiento: "La ausencia de partes móviles hace a los SSD mucho más rápidos y resistentes a los golpes que los HDD." }, { categoria: "Hardware", pregunta: "La tecnología de almacenamiento óptico incluye...", opciones: ["Disquetes", "Memorias USB", "CD, DVD y Blu-ray", "Discos Duros"], respuesta: 2, conocimiento: "Los discos ópticos usan un láser para leer y escribir datos en una superficie reflectante." }, { categoria: "Conceptos", pregunta: "¿Qué significa el acrónimo 'KB'?", opciones: ["KiloBit", "KiloByte", "KiloBase", "KiloBaud"], respuesta: 1, conocimiento: "Un KiloBit (Kb) es 1/8 de un KiloByte (KB). Las velocidades de internet se miden en bits." }, { categoria: "Conceptos", pregunta: "El término 'Almacenamiento en la Nube' se refiere a:", opciones: ["Guardar datos en satélites", "Guardar datos en servidores remotos accesibles por internet", "Un nuevo tipo de disco SSD", "Almacenamiento que usa vapor de agua"], respuesta: 1, conocimiento: "El concepto fue popularizado por Amazon Web Services (AWS) a mediados de la década de 2000." }, { categoria: "Conceptos", pregunta: "¿Qué es la 'latencia' en el almacenamiento de datos?", opciones: ["La capacidad total del disco", "La velocidad de transferencia", "El tiempo de retardo para acceder a un dato", "La temperatura del disco"], respuesta: 2, conocimiento: "Los SSD tienen una latencia muchísimo más baja que los HDD, lo que acelera el arranque del sistema y la carga de programas." }, { categoria: "Conversion", pregunta: "Aproximadamente, ¿cuántos Gigabytes (GB) son 0.5 Terabytes (TB)?", opciones: ["5000 GB", "50 GB", "512 GB", "500 GB"], respuesta: 3, conocimiento: "El prefijo 'Tera' representa 10^12, mientras que 'Giga' representa 10^9." }, { categoria: "Historia", pregunta: "¿Qué dispositivo, popular en los 80 y 90, tenía una capacidad típica de 1.44 MB?", opciones: ["Zip Drive", "CD-ROM", "Disquete de 3.5 pulgadas", "Memoria USB"], respuesta: 2, conocimiento: "El sonido del motor de un lector de disquetes es un recuerdo icónico para muchos entusiastas de la computación." }, { categoria: "Hardware", pregunta: "¿Qué significa RAID 0 en un sistema de almacenamiento?", opciones: ["Duplicación de datos (Mirroring)", "División de datos (Striping) para mayor velocidad", "Paridad para redundancia", "Un solo disco"], respuesta: 1, conocimiento: "RAID 0 mejora el rendimiento pero no ofrece redundancia. Si un disco falla, se pierden todos los datos." }, { categoria: "Conceptos", pregunta: "La unidad de medida inmediatamente superior al Petabyte (PB) es el...", opciones: ["Zettabyte (ZB)", "Exabyte (EB)", "Yottabyte (YB)", "Terabyte (TB)"], respuesta: 1, conocimiento: "Se estima que el tráfico global de internet superó un Exabyte por día en 2016." }, { categoria: "Conversion", pregunta: "¿Cuántos bits se necesitan para representar un carácter en el código ASCII estándar?", opciones: ["4", "8", "16", "32"], respuesta: 1, conocimiento: "El ASCII extendido usa 8 bits, permitiendo 256 caracteres diferentes, incluyendo símbolos y letras acentuadas." }, { categoria: "Historia", pregunta: "El concepto de 'hipertexto', fundamental para la web, fue acuñado por:", opciones: ["Tim Berners-Lee", "Bill Gates", "Ted Nelson", "Steve Jobs"], respuesta: 2, conocimiento: "Ted Nelson lo describió en su 'Proyecto Xanadu' en 1960, décadas antes de que la tecnología lo hiciera práctico." } ];
-        const niveles = ["1 BIT", "1 BYTE", "1 KB", "100 KB", "1 MEGABYTE", "10 MB", "100 MB", "1 GB", "100 GB", "1 TERABYTE", "10 TB", "100 TB", "1 PETABYTE", "100 PB", "LA NUBE GLOBAL"];
-        const loreInterludios = { 4: { titulo: "Archivo Desbloqueado: El Nacimiento del Megabyte", texto: "En 1956, el IBM 305 RAMAC introdujo el primer disco duro. Era del tamaño de dos refrigeradores, pesaba una tonelada y almacenaba 5 millones de caracteres (unos 5 MB). El acceso a cualquier dato tardaba menos de un segundo, una velocidad revolucionaria. Con él, la era del acceso aleatorio a grandes volúmenes de datos había comenzado, sentando las bases de todo lo que vendría después." }, 9: { titulo: "Archivo Desbloqueado: El Salto al Terabyte", texto: "Hitachi lanzó el primer disco duro de 1 Terabyte (1000 GB) en 2007, un hito que parecía ciencia ficción solo una década antes. Este salto cuántico en capacidad hizo posible la alta definición personal, las grandes librerías de juegos y el almacenamiento masivo de fotos y videos a nivel de consumidor. El 'Big Data' personal se había convertido en una realidad." } };
+        // ==========================================
+        // CONFIGURACIÓN DE SUPABASE
+        // ==========================================
+        const SUPABASE_URL = "https://iwuglirgkvnobhatgedq.supabase.co"; 
+        const SUPABASE_ANON_KEY = "sb_publishable_sNgWni9L5DWroTgEPKhKQw_cST-OXxR"; 
         
-        // --- II. DECLARACIÓN DEL ESTADO DEL JUEGO ---
-        let estadoJuego = {};
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: false }
+        });
 
-        // --- III. DEFINICIÓN DE TODAS LAS FUNCIONES DE LA APLICACIÓN ---
+        // ==========================================
+        // UTILIDADES Y EFECTOS VISUALES 
+        // ==========================================
+        function requestFS() { let el = document.documentElement; if(el.requestFullscreen) el.requestFullscreen().catch(()=>{}); else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen().catch(()=>{}); }
+        function exitFS() { if(document.exitFullscreen) document.exitFullscreen().catch(()=>{}); else if(document.webkitExitFullscreen) document.webkitExitFullscreen().catch(()=>{}); }
 
-        function resetEstadoJuego() { /* ... Lógica sin cambios ... */ }
-        function mulberry32(a) { /* ... Lógica sin cambios ... */ }
-        
-        // Funciones de Pantalla Completa
-        function entrarEnPantallaCompleta() { /* ... Lógica sin cambios ... */ }
-        function manejarCambioDePantallaCompleta() { /* ... Lógica sin cambios ... */ }
-        
-        // Funciones de Navegación y UI
-        function mostrarPantalla(id) { /* ... Lógica sin cambios ... */ }
-        function rellenarHTML() { /* ... Lógica sin cambios ... */ }
-        function iniciarPrecarga() { /* ... Lógica sin cambios ... */ }
-        function generarTeclado() { /* ... Lógica sin cambios ... */ }
+        function formatDataString(num) { return (num || 0).toLocaleString('en-US') + ' GB'; }
+        function shuffle(arr) { let array = [...arr]; for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
 
-        // Funciones de Lógica de Juego
-        function generarRondaDePreguntas(seed) { /* ... Lógica sin cambios ... */ }
-        function iniciarJuego(seed = null) { /* ... Lógica sin cambios ... */ }
-        function iniciarJuegoConSemilla() { /* ... Lógica sin cambios ... */ }
-        function cargarPregunta() { /* ... Lógica sin cambios ... */ }
-        function seleccionarRespuesta(btn, index) { /* ... Lógica sin cambios ... */ }
-        function verificarRespuesta(selectedIndex) { /* ... Lógica sin cambios ... */ }
-        function continuarJuegoDesdeLore() { /* ... Lógica sin cambios ... */ }
-        function finalizarJuego(victoria) { /* ... Lógica sin cambios ... */ }
+        function spawnFloatingText(text, className) {
+            const el = document.createElement('div');
+            el.className = `floating-feedback ${className}`; el.textContent = text;
+            document.body.appendChild(el); setTimeout(() => el.remove(), 1800);
+        }
 
-        // Funciones de Comodines
-        function usarComodin5050() { /* ... Lógica sin cambios ... */ }
-        function usarComodinSysAdmin() { alert("Funcionalidad en desarrollo."); }
-        function usarComodinRed() { alert("Funcionalidad en desarrollo."); }
-
-        // Funciones de Puntuación y Logros
-        function verificarLogros() { /* ... Lógica sin cambios ... */ }
-        function guardarPuntuacion(nombre, capacidad, valor) { /* ... Lógica sin cambios ... */ }
-        function actualizarTablaPuntuaciones() { /* ... Lógica sin cambios ... */ }
-        function actualizarLogrosDisplay() { /* ... Lógica sin cambios ... */ }
-        function actualizarArbol() { /* ... Lógica sin cambios ... */ }
-        function reiniciarYJugar() { /* ... Lógica sin cambios ... */ }
-
-        // --- IV. IMPLEMENTACIÓN DETALLADA DE LAS FUNCIONES ---
-
-        // (Aquí pegamos el cuerpo de TODAS las funciones. El orden de definición ya no importa tanto,
-        // pero por claridad, las mantenemos agrupadas)
-
-        // Reset
-        resetEstadoJuego = function() {
-            estadoJuego = {
-                nombreJugador: estadoJuego.nombreJugador || "", preguntaActualIdx: 0,
-                comodines: { '5050': true, 'sysadmin': true, 'red': true },
-                puntuaciones: JSON.parse(localStorage.getItem('puntuacionesAscenso')) || [],
-                logros: JSON.parse(localStorage.getItem('logrosAscenso')) || { purista: { desbloqueado: false, texto: "'Purista': Alcanza 1TB sin comodines." }, calculadora: { desbloqueado: false, texto: "'Calculadora Humana': Acierta 3 preguntas de conversión." }, historiador: { desbloqueado: false, texto: "'Historiador Digital': Acierta 3 preguntas de historia." }, perfecto: { desbloqueado: false, texto: "'Ascenso Perfecto': Completa el juego." } },
-                preguntasRonda: [], seed: 0, aciertosConversion: 0, aciertosHistoria: 0,
-                comodinesUsados: false, enPartida: false
-            };
-        };
-        
-        // Aleatoriedad
-        mulberry32 = function(a) { return function() { var t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } };
-        
-        // Pantalla Completa
-        entrarEnPantallaCompleta = function() {
-            const el = document.documentElement;
-            if (el.requestFullscreen) el.requestFullscreen();
-            else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-            else if (el.msRequestFullscreen) el.msRequestFullscreen();
-        };
-        manejarCambioDePantallaCompleta = function() {
-            const enforcer = document.getElementById('fullscreen-enforcer-overlay');
-            if (!document.fullscreenElement && estadoJuego.enPartida) enforcer.classList.add('active');
-            else enforcer.classList.remove('active');
-        };
-        
-        // UI y Navegación
-        mostrarPantalla = function(id) {
-            document.querySelectorAll('.screen').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            if (id === 'salon-screen') {
-                actualizarTablaPuntuaciones();
-                actualizarLogrosDisplay();
+        function spawnParticles(targetEl, type) {
+            const rect = (targetEl && targetEl.getBoundingClientRect) ? targetEl.getBoundingClientRect() : {left: window.innerWidth/2, top: window.innerHeight/2, width: 0, height: 0};
+            const colors = type === 'success' ? ['#39ff14', '#00f0ff', '#ffffff'] : ['#ff003c', '#ffaa00', '#ffffff'];
+            for(let i=0; i<15; i++) {
+                let p = document.createElement('div'); p.className = 'particle'; p.textContent = type === 'success' ? '1' : '0';
+                p.style.left = `${rect.left + rect.width / 2}px`; p.style.top = `${rect.top + rect.height / 2}px`;
+                p.style.color = colors[Math.floor(Math.random() * colors.length)];
+                let angle = Math.random() * Math.PI * 2; let dist = Math.random() * 150 + 50;
+                p.style.setProperty('--tx', `${Math.cos(angle) * dist}px`); p.style.setProperty('--ty', `${Math.sin(angle) * dist}px`); p.style.setProperty('--rot', `${Math.random() * 360}deg`);
+                document.body.appendChild(p); setTimeout(() => p.remove(), 1000);
             }
-        };
-        rellenarHTML = function() {
-            document.getElementById('precarga-screen').innerHTML = `<h1 class="titulo">ENSAMBLANDO</h1><div class="buffer-carga" id="buffer-carga-contenedor"></div><p id="texto-precarga"></p>`;
-            document.getElementById('registro-screen').innerHTML = `<div class="registro-contenedor"><h2>SISTEMA DE CONOCIMIENTO DE ALMACENAMIENTO v1.2</h2><div class="prompt-entrada"><span>&gt; Ingrese identificador de Nodo:&nbsp;</span><span id="jugador-input"></span><div class="cursor"></div></div><div class="matriz-entrada" id="teclado-virtual"></div></div>`;
-            document.getElementById('menu-screen').innerHTML = `<h1>EL ASCENSO DEL ALMACENAMIENTO</h1><p id="nodo-activo-display"></p><div class="menu-opciones"><button id="iniciar-juego-btn">INICIAR ASCENSO</button><div class="semilla-contenedor"><input type="text" id="semilla-input" placeholder="Opcional: Ingrese Semilla"><button id="iniciar-semilla-btn">USAR SEMILLA</button></div><button id="mostrar-salon-btn">SALÓN DE ARQUITECTOS</button></div>`;
-            document.getElementById('juego-screen').innerHTML = `<div class="juego-columna"><h3 class="arsenal-titulo">ÁRBOL DE CAPACIDAD</h3><ul id="arbol-capacidad"></ul></div><div class="juego-columna columna-central"><div id="pregunta-contenedor"></div><div id="respuestas-contenedor"></div></div><div class="juego-columna"><h3 class="arsenal-titulo">ARSENAL</h3><button class="comodin-btn" id="comodin-5050">Eliminación Binaria [1/0]</button><button class="comodin-btn" id="comodin-sysadmin">Consulta al SysAdmin [👤]</button><button class="comodin-btn" id="comodin-red">Encuesta a la Red [🌐]</button></div>`;
-            document.getElementById('lore-interludio-screen').innerHTML = `<div class="lore-contenedor"><h2 id="lore-titulo"></h2><p id="lore-texto"></p><button id="continuar-lore-btn">CONTINUAR ASCENSO</button></div>`;
-            document.getElementById('salon-screen').innerHTML = `<h2>SALÓN DE LOS ARQUITECTOS</h2><div class="salon-contenido"><table id="tabla-puntuaciones"><thead><tr><th>RANGO</th><th>NODO</th><th>CAPACIDAD</th><th>FECHA</th></tr></thead><tbody></tbody></table><div id="logros-contenedor"><h3>GALARDONES</h3><ul id="logros-lista"></ul></div></div><div id="semilla-final-display"></div><div class="salon-botones"><button id="reiniciar-btn">NUEVO NODO</button><button id="volver-menu-btn">VOLVER A LA CONSOLA</button></div>`;
-            document.getElementById('fragmento-overlay').innerHTML = `<div class="fragmento-conocimiento"><h3>Fragmento de Conocimiento</h3><p id="fragmento-texto"></p></div>`;
-            document.getElementById('fullscreen-enforcer-overlay').innerHTML = `<h2>INMERSIÓN INTERRUMPIDA</h2><p>La experiencia ha sido diseñada para ser contemplada en toda su magnitud.</p><button id="reactivar-fullscreen-btn">REACTIVAR INMERSIÓN</button>`;
-        };
-        iniciarPrecarga = function() {
-            const contenedorBuffer = document.getElementById('buffer-carga-contenedor');
-            const textoPrecarga = document.getElementById('texto-precarga');
-            const mensajes = ["> Inicializando bancos de memoria...", "> Compilando preguntas...", "> Verificando integridad...", "> Conectando a la Nube...", "> Ensamblaje completado."];
-            for(let i = 0; i < 16; i++) {
-                const bloque = document.createElement('div'); bloque.classList.add('buffer-carga-bloque');
-                contenedorBuffer.appendChild(bloque);
+        }
+
+        function animatePrizeDrain(el, amount, duration) {
+            let start = amount; let startTime = null;
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                let progress = (timestamp - startTime) / duration; if (progress > 1) progress = 1;
+                el.textContent = formatDataString(Math.floor(start - (start * progress)));
+                if (progress < 1) { window.requestAnimationFrame(step); }
             }
-            const bloques = document.querySelectorAll('.buffer-carga-bloque');
-            let bloqueActual = 0, msgActual = 0;
-            textoPrecarga.textContent = mensajes[msgActual];
-            const intervalo = setInterval(() => {
-                if(bloqueActual < bloques.length) {
-                    bloques[bloqueActual].style.backgroundColor = 'var(--color-primario)'; bloqueActual++;
-                    if (bloqueActual % 4 === 0 && msgActual < mensajes.length - 1) { msgActual++; textoPrecarga.textContent = mensajes[msgActual]; }
-                } else {
-                    clearInterval(intervalo);
-                    setTimeout(() => mostrarPantalla('registro-screen'), 500);
-                }
-            }, 150);
+            window.requestAnimationFrame(step);
+        }
+
+        const THEME_WAVES = { informatica: 'square', calculos: 'sine', palabras: 'triangle', general: 'sawtooth', duel: 'sawtooth' };
+        const AudioEngine = {
+            ctx: new (window.AudioContext || window.webkitAudioContext || window.mozAudioContext)(),
+            resume: function() { if(this.ctx.state === 'suspended') { this.ctx.resume().catch(e => console.warn("Audio auto-play blocked", e)); } },
+            play: function(freq, type, dur, vol, delay = 0) {
+                setTimeout(() => {
+                    if(this.ctx.state === 'suspended') return;
+                    let osc = this.ctx.createOscillator(); let gain = this.ctx.createGain();
+                    osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(vol, this.ctx.currentTime + 0.02); 
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur); 
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime); osc.stop(this.ctx.currentTime + dur);
+                }, delay);
+            },
+            sndClick: function() { this.play(1200, 'square', 0.05, 0.05); },
+            sndKey: function() { this.play(800, 'sine', 0.03, 0.05); },
+            sndReveal: function() { let w = getCurrentWave(); this.play(300, w, 0.1, 0.05); this.play(600, w, 0.1, 0.05, 100); this.play(900, w, 0.3, 0.05, 200); },
+            sndCorrect: function() { let w = getCurrentWave(); this.play(523.25, w, 0.1, 0.1); this.play(880, w, 0.15, 0.1, 100); this.play(1046.50, w, 0.3, 0.1, 250); },
+            sndError: function() { this.play(150, 'sawtooth', 0.3, 0.15); this.play(100, 'square', 0.4, 0.15, 200); },
+            sndWinGame: function() { let w = getCurrentWave(); [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98].forEach((f, i) => this.play(f, w, 0.15, 0.1, i*120)); },
+            sndAlarm: function() { for(let i=0; i<5; i++) { this.play(800, 'sawtooth', 0.2, 0.2, i*300); this.play(1200, 'square', 0.2, 0.2, i*300 + 150); } },
+            sndDuelTick: function() { this.play(1500, 'square', 0.05, 0.05); }
         };
-        generarTeclado = function() {
-            const contenedor = document.getElementById('teclado-virtual'); const inputJugador = document.getElementById('jugador-input');
-            const layout = "QWERTYUIOPASDFGHJKLZXCVBNM";
-            const autenticarBtn = document.createElement('button'); autenticarBtn.textContent = "AUTENTICAR"; autenticarBtn.className = 'accept-key'; autenticarBtn.disabled = true;
-            const updateAutenticarBtn = () => { autenticarBtn.disabled = inputJugador.textContent.length === 0; };
-            layout.split('').forEach(key => {
-                const btn = document.createElement('button'); btn.textContent = key;
-                btn.onclick = () => { if(inputJugador.textContent.length < 10) inputJugador.textContent += key; updateAutenticarBtn(); };
-                contenedor.appendChild(btn);
+        function getCurrentWave() { return THEME_WAVES[state.currentModule] || 'square'; }
+
+        // ==========================================
+        // BASE DE DATOS LOCAL PREGUNTAS
+        // ==========================================
+        const SUCCESS_WORDS = ["¡GENIAL!", "¡ESTUPENDO!", "¡SÚPER!", "¡EXCELENTE!", "¡PERFECTO!", "¡MAGNÍFICO!", "¡INCREÍBLE!"];
+        const ERROR_WORDS = ["¡UPS!", "¡ERROR!", "¡INCORRECTO!", "¡FALLASTE!", "¡LÁSTIMA!", "¡PIFIA!", "¡EQUIVOCACIÓN!"];
+        const PRIZES_POOL = [10, 20, 30, 50, 100, 150, 200, 250, 300, 500, 750, 1000, 1500, 2000, 2500, 5000, 7500, 10000, 50000, 100000];
+
+        const DB_MODULES = {
+            informatica: [
+                { q: "¿Qué es el Software de una computadora?", c: "Los programas y aplicaciones de tu equipo.", d: ["Los componentes físicos de la computadora.", "Los cables de red y conexiones a internet.", "Los botones de encendido de todo el equipo."] },
+                { q: "¿Qué es el Hardware de una computadora?", c: "Las partes físicas tangibles de tu equipo.", d: ["Los programas y videojuegos preinstalados.", "Los virus malignos que atacan a la memoria.", "El sistema operativo principal de tu equipo."] },
+                { q: "¿Cuál es la función del Sistema Operativo?", c: "Es el software principal que controla la PC.", d: ["El juego de carreras de la última generación.", "El dispositivo para escuchar la música pop.", "El cable que conecta el monitor a tu gran PC."] },
+                { q: "¿Qué es una dirección web o URL completa?", c: "Es la dirección web única de una página web.", d: ["Es el gran cable de red de alta velocidad hoy.", "Es la tarjeta gráfica de muchísima potencia.", "Es el pequeño botón para encender tu pantalla."] },
+                { q: "¿Para qué sirve un programa Antivirus?", c: "Para detectar y borrar programas maliciosos.", d: ["Para limpiar el teclado del polvo acumulado.", "Para hacer que los videojuegos vayan rápidos.", "Para descargar todas las películas de la red."] },
+                { q: "¿Qué es un Disco de Estado Sólido (SSD)?", c: "Un disco de almacenamiento muy veloz y sin motor.", d: ["Un disco de música muy antiguo para los tocadiscos.", "Un programa de almacenamiento muy lento y con virus.", "Una memoria temporal que siempre se borra al apagar."] },
+                { q: "¿Qué es la Nube en la informática moderna?", c: "Muchos servidores en internet para guardar archivos.", d: ["Muchas nubes reales en el cielo que guardan datos.", "Muchos programas para ver el clima en tu ciudad hoy.", "Muchos juegos de video sobre aviones y helicópteros."] },
+                { q: "¿Qué hace la combinación de 'Ctrl + C'?", c: "Esta copia los elementos que fueron seleccionados.", d: ["Esta corta los elementos directos desde la pantalla.", "Esta pega los elementos que ya estaban guardados hoy.", "Esta cierra todos los programas de un solo golpe fuerte."] },
+                { q: "¿Qué hace la combinación de 'Ctrl + V'?", c: "Esta pega los elementos que copiaste previamente.", d: ["Esta corta los elementos directos desde la pantalla.", "Esta copia los elementos que fueron seleccionados hoy.", "Esta cierra todos los programas de un solo golpe fuerte."] },
+                { q: "¿Cuál es la unidad base de información?", c: "El Bit, que siempre representa un cero o un uno.", d: ["El Byte, que siempre representa mil números hoy.", "El Megabyte, que es una gran unidad de memoria.", "El Kilobyte, que se usa mucho en letras chicas."] }
+            ],
+            calculos: [
+                { q: "¿Cuánto es exactamente 15 multiplicado por 4?", c: "El resultado exacto de la cuenta matemática es sesenta.", d: ["El resultado exacto de la cuenta matemática es ochenta.", "El resultado exacto de la cuenta matemática es cuarenta.", "El resultado exacto de la cuenta matemática es setenta."] },
+                { q: "¿Cuánto es el total sumando 120 más 85?", c: "El resultado exacto de la cuenta es doscientos cinco.", d: ["El resultado exacto de la cuenta es doscientos quince.", "El resultado exacto de la cuenta es ciento noventa hoy.", "El resultado exacto de la cuenta es trescientos cinco."] },
+                { q: "Si divides 100 entre 4, ¿cuál es el total?", c: "El resultado de la división es exactamente veinticinco.", d: ["El resultado de la división es exactamente treinta hoy.", "El resultado de la división es exactamente quince hoy.", "El resultado de la división es exactamente cincuenta."] },
+                { q: "¿Cuál es la raíz cuadrada del número 64?", c: "El número resultante de esta operación es el número ocho.", d: ["El número resultante de esta operación es el número seis.", "El número resultante de esta operación es el número nueve.", "El número resultante de esta operación es el número diez."] },
+                { q: "¿Cuánto es exactamente 9 multiplicado por 8?", c: "El resultado exacto de esta cuenta es setenta y dos hoy.", d: ["El resultado exacto de esta cuenta es sesenta y tres hoy.", "El resultado exacto de esta cuenta es ochenta y uno hoy.", "El resultado exacto de esta cuenta es cincuenta y cuatro."] },
+                { q: "Si compras algo de 45 y pagas con 100, ¿vuelto?", c: "El cambio exacto que debes recibir es cincuenta y cinco.", d: ["El cambio exacto que debes recibir es cuarenta y cinco.", "El cambio exacto que debes recibir es sesenta y cinco hoy.", "El cambio exacto que debes recibir es treinta y cinco hoy."] },
+                { q: "¿Cuánto es el 50% del total de 250?", c: "La mitad exacta de este número corresponde a ciento veinticinco.", d: ["La mitad exacta de este número corresponde a ciento cincuenta hoy.", "La mitad exacta de este número corresponde a solamente cien hoy.", "La mitad exacta de este número corresponde a ciento treinta hoy."] }
+            ],
+            palabras: [
+                { q: "¿Cuál de estos es un sinónimo de la palabra 'Rápido'?", c: "La palabra 'Veloz' tiene un significado que es muy similar.", d: ["La palabra 'Lento' tiene un significado que es muy similar.", "La palabra 'Pesado' tiene un significado que es muy similar.", "La palabra 'Triste' tiene un significado que es muy similar."] },
+                { q: "¿Cuál de estos es un antónimo de la palabra 'Claro'?", c: "La palabra 'Oscuro' representa exactamente lo opuesto hoy.", d: ["La palabra 'Brillante' representa exactamente lo opuesto hoy.", "La palabra 'Limpio' representa exactamente lo opuesto hoy.", "La palabra 'Gigante' representa exactamente lo opuesto hoy."] },
+                { q: "¿Qué significa la palabra 'Efímero' en los textos?", c: "Algo de muy corta duración, que simplemente pasa muy rápido.", d: ["Algo sumamente eterno, que durará por el resto de los siglos.", "Algo de gran tamaño, que ocupa muchísimo espacio en el lugar.", "Algo extremadamente brillante, que ilumina toda la habitación."] },
+                { q: "¿Cómo se escribe correctamente esta famosa palabra?", c: "La forma totalmente correcta de escribir esto es 'Zanahoria'.", d: ["La forma totalmente correcta de escribir esto es 'Sanahoria'.", "La forma totalmente correcta de escribir esto es 'Zanaoria'.", "La forma totalmente correcta de escribir esto es 'Zanahoriya'."] },
+                { q: "¿Cuál de las siguientes palabras es clasificada Aguda?", c: "La palabra 'Corazón', ya que lleva su acento en el final.", d: ["La palabra 'Árbol', ya que lleva su acento en el final hoy.", "La palabra 'Pájaro', ya que lleva su acento en el final.", "La palabra 'Mesa', ya que lleva su acento en el final hoy."] },
+                { q: "¿Cuál de estas opciones es un pronombre personal?", c: "La pequeña palabra 'Nosotros' funciona como un pronombre.", d: ["La pequeña palabra 'Correr' funciona como un pronombre hoy.", "La pequeña palabra 'Rojo' funciona como un pronombre hoy.", "La pequeña palabra 'Ayer' funciona como un pronombre hoy."] }
+            ],
+            general: [
+                { q: "¿Cuál es el planeta más enorme del Sistema Solar?", c: "El planeta gigante gaseoso que conocemos como el gran Júpiter.", d: ["El planeta terrestre con muchos anillos conocido como Saturno.", "El planeta cercano al inmenso sol que conocemos como Mercurio.", "El planeta rojo muy explorado que todos conocemos como Marte."] },
+                { q: "¿Quién pintó la famosa obra de la 'Mona Lisa'?", c: "El gran genio del arte universal, el italiano Leonardo da Vinci.", d: ["El gran artista surrealista famoso conocido como Pablo Picasso.", "El pintor impresionista europeo conocido como Vincent van Gogh.", "El gran escultor del renacimiento conocido como Miguel Ángel."] },
+                { q: "¿En qué inmenso continente se ubica país de Egipto?", c: "Este desértico e histórico país está en el continente de África.", d: ["Este desértico e histórico país está en el continente de Europa.", "Este desértico e histórico país está en el continente de Asia.", "Este desértico e histórico país está en el continente de América."] },
+                { q: "¿De qué se compone la fórmula química del agua (H2O)?", c: "Tiene exactamente dos partes de Hidrógeno y una de Oxígeno.", d: ["Tiene exactamente dos partes de Oxígeno y una de Hidrógeno.", "Tiene exactamente dos partes de Helio y una gran parte de Agua.", "Tiene exactamente dos partes de Hierro y una parte de Oxígeno."] },
+                { q: "¿Cuál es el animal terrestre más rápido del mundo?", c: "El felino moteado que conocemos todos con el nombre de Guepardo.", d: ["El rey de la selva africana que conocemos con el nombre de León.", "El ave de gran tamaño no voladora conocida como la Avestruz.", "El equino muy veloz utilizado para las carreras que es el Caballo."] },
+                { q: "¿En qué país se encuentra la famosa Torre Eiffel?", c: "Esta gigantesca torre de metal se encuentra ubicada en Francia.", d: ["Esta gigantesca torre de metal se encuentra ubicada en Italia.", "Esta gigantesca torre de metal se encuentra ubicada en España.", "Esta gigantesca torre de metal se encuentra ubicada en Inglaterra."] }
+            ]
+        };
+
+        const state = {
+            currentModule: null, score: 0, cardsPlayed: 0, totalCards: 20, boardData: [], currentCardId: null, isAnimating: false,
+            securityStrikes: 0, isIntentionalExit: false, 
+            onlinePlayers: [], activeChallengeId: null, currentChallenge: null, duelTimer: null, duelTimeLeft: 15, botTimeout: null,
+            botDuelQuestions: [], botDuelCurrent: 0, botScore: 0, playerScore: 0, currentBot: null
+        };
+
+        let localDB = { players: [], currentPlayerName: null };
+        let isOnline = navigator.onLine;
+
+        // ==========================================
+        // LÓGICA CLOUD Y ALMACENAMIENTO HÍBRIDO (ADAPTADO AL NUEVO ESQUEMA SQL)
+        // ==========================================
+        function checkNetworkStatus() {
+            const netUI = document.getElementById('network-status'); const vaultUI = document.getElementById('vault-title-ui'); const arenaUI = document.getElementById('btn-goto-arena');
+            if (isOnline) {
+                netUI.className = 'status-online'; netUI.textContent = '📡 CONECTADO A SUPABASE';
+                vaultUI.textContent = 'Fondos en Nube'; arenaUI.textContent = 'BATTLE ARENA';
+            } else {
+                netUI.className = 'status-offline'; netUI.textContent = '📡 MODO LOCAL';
+                vaultUI.textContent = 'Memoria Temporal'; arenaUI.textContent = 'ARENA SIMULADA';
+            }
+        }
+
+        window.addEventListener('online', () => { isOnline = true; checkNetworkStatus(); if(getActivePlayer()) saveCloudStorage(); });
+        window.addEventListener('offline', () => { isOnline = false; checkNetworkStatus(); });
+
+        function loadLocalData() {
+            const saved = localStorage.getItem('millo_profiles');
+            if (saved) { 
+                try { 
+                    localDB = JSON.parse(saved); 
+                    // Asegurar que los perfiles existentes tengan UUID (Para la tabla millo_players)
+                    localDB.players.forEach(p => {
+                        if(!p.id) p.id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Math.random().toString(36).substr(2, 9);
+                    });
+                    renderPlayerList(); updateUIStats(); 
+                } catch(e){} 
+            }
+        }
+
+        function saveLocalData() {
+            localStorage.setItem('millo_profiles', JSON.stringify(localDB));
+        }
+
+        async function loadCloudStorage() {
+            if (!isOnline) return;
+            // Para cada jugador local, traemos su progreso de las tablas actualizadas.
+            for(let p of localDB.players) {
+                if(!p.id) continue;
+                try {
+                    const { data, error } = await supabaseClient.from('millo_players').select('*').eq('id', p.id).single();
+                    if (data) { 
+                        p.name = data.name;
+                        p.vaultScore = data.vault_score;
+                        p.progress.informatica = data.progress_informatica || { played: 0, score: 0 };
+                        p.progress.calculos = data.progress_calculos || { played: 0, score: 0 };
+                        p.progress.palabras = data.progress_palabras || { played: 0, score: 0 };
+                        p.progress.general = data.progress_general || { played: 0, score: 0 };
+                    }
+                } catch (e) { console.error("Error al cargar perfil", p.name, e); }
+            }
+            saveLocalData();
+            renderPlayerList(); updateUIStats();
+        }
+
+        async function saveCloudStorage() {
+            saveLocalData(); 
+            if (!isOnline || !getActivePlayer()) return;
+            let p = getActivePlayer();
+            try {
+                // Upsert exacto a las nuevas columnas de la tabla millo_players
+                await supabaseClient.from('millo_players').upsert({
+                    id: p.id, 
+                    name: p.name, 
+                    vault_score: p.vaultScore,
+                    progress_informatica: p.progress.informatica,
+                    progress_calculos: p.progress.calculos,
+                    progress_palabras: p.progress.palabras,
+                    progress_general: p.progress.general,
+                    last_seen: new Date().toISOString()
+                });
+            } catch(e) {}
+        }
+
+        function getActivePlayer() { return localDB.players.find(p => p.name === localDB.currentPlayerName); }
+
+        window.onload = async () => {
+            loadLocalData(); 
+            checkNetworkStatus();
+            await loadCloudStorage(); 
+            if(isOnline) setupRealtimeListeners();
+        };
+
+        // ==========================================
+        // INTERFAZ DE NAVEGACIÓN
+        // ==========================================
+        function nav(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); 
+            document.getElementById(screenId).classList.remove('hidden');
+            document.body.className = (screenId === 'screen-duel') ? 'theme-duel' : '';
+        }
+
+        function renderPlayerList() {
+            const listContainer = document.getElementById('player-list-container'); listContainer.innerHTML = '';
+            const displayPlayers = localDB.players.slice(0, 4);
+            if(displayPlayers.length === 0) { listContainer.innerHTML = '<div style="color: #aaa; text-align: center; margin-top: 2vh;">No hay perfiles locales.</div>'; return; }
+            
+            displayPlayers.forEach((p) => {
+                let div = document.createElement('div'); div.className = 'player-item';
+                div.innerHTML = `<span class="player-name">${p.name}</span><button class="player-delete">X</button>`;
+                div.onclick = () => { selectPlayer(p.name); };
+                
+                div.querySelector('.player-delete').onclick = (e) => {
+                    e.stopPropagation(); AudioEngine.sndError(); 
+                    const realIndex = localDB.players.findIndex(player => player.name === p.name);
+                    if(realIndex !== -1) {
+                        localDB.players.splice(realIndex, 1);
+                        if(localDB.currentPlayerName === p.name) localDB.currentPlayerName = null;
+                        saveCloudStorage(); renderPlayerList();
+                    }
+                };
+                listContainer.appendChild(div);
             });
-            const borrar = document.createElement('button'); borrar.textContent = "BORRAR"; borrar.className = "delete-key";
-            borrar.onclick = () => { inputJugador.textContent = inputJugador.textContent.slice(0, -1); updateAutenticarBtn(); };
-            autenticarBtn.onclick = () => {
-                estadoJuego.nombreJugador = inputJugador.textContent;
-                document.getElementById('nodo-activo-display').textContent = `> NODO ACTIVO: ${estadoJuego.nombreJugador}`;
-                entrarEnPantallaCompleta(); mostrarPantalla('menu-screen');
-            };
-            contenedor.appendChild(borrar); contenedor.appendChild(autenticarBtn);
-        };
+        }
 
-        // Lógica de Juego
-        generarRondaDePreguntas = function(seed) { /* ... como antes ... */ const rng = mulberry32(seed); const categorias = { "Historia": [], "Conversion": [], "Hardware": [], "Conceptos": [] }; bancoDePreguntas.forEach(p => categorias[p.categoria].push(p)); for (const cat in categorias) { for (let i = categorias[cat].length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [categorias[cat][i], categorias[cat][j]] = [categorias[cat][j], categorias[cat][i]]; } } const ronda = []; for (let i = 0; i < 15; i++) { const catOrden = ["Historia", "Conversion", "Hardware", "Conceptos"]; const catSeleccionada = catOrden[i % 4]; if (categorias[catSeleccionada].length > 0) ronda.push(categorias[catSeleccionada].pop()); else { for (const cat in categorias) { if (categorias[cat].length > 0) { ronda.push(categorias[cat].pop()); break; } } } } return ronda; };
-        iniciarJuego = function(seed = null) { resetEstadoJuego(); estadoJuego.enPartida = true; estadoJuego.seed = seed === null ? Math.floor(Math.random() * 1000000) : seed; estadoJuego.preguntasRonda = generarRondaDePreguntas(estadoJuego.seed); document.querySelectorAll('.comodin-btn').forEach(btn => btn.disabled = false); mostrarPantalla('juego-screen'); cargarPregunta(); };
-        iniciarJuegoConSemilla = function() { const s = parseInt(document.getElementById('semilla-input').value); if(!isNaN(s)) iniciarJuego(s); else alert("Semilla inválida."); };
-        cargarPregunta = function() { /* ... como antes ... */ };
-        seleccionarRespuesta = function(btn, index) { /* ... como antes ... */ };
-        verificarRespuesta = function(selectedIndex) { /* ... como antes ... */ };
-        continuarJuegoDesdeLore = function() { if (estadoJuego.preguntaActualIdx >= estadoJuego.preguntasRonda.length) finalizarJuego(true); else { mostrarPantalla('juego-screen'); cargarPregunta(); } };
-        finalizarJuego = function(victoria) { /* ... como antes ... */ };
-        usarComodin5050 = function() { if (!estadoJuego.comodines['5050']) return; estadoJuego.comodines['5050'] = false; estadoJuego.comodinesUsados = true; document.getElementById('comodin-5050').disabled = true; const preguntaData = estadoJuego.preguntasRonda[estadoJuego.preguntaActualIdx]; const botones = document.querySelectorAll('.respuesta-btn'); let ocultados = 0, i = 0; while (ocultados < 2 && i < botones.length) { if (i !== preguntaData.respuesta) { botones[i].classList.add('oculta'); ocultados++; } i++; } };
+        function selectPlayer(name) {
+            AudioEngine.resume(); AudioEngine.sndClick(); if(!name || name.trim() === '') return;
+            let existing = localDB.players.find(p => p.name === name);
+            if (!existing) {
+                if(localDB.players.length >= 4) { AudioEngine.sndError(); spawnFloatingText("MÁXIMO 4 PERFILES", "error"); return; }
+                existing = { 
+                    id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Math.random().toString(36).substr(2, 9),
+                    name: name, vaultScore: 0, 
+                    progress: { informatica: { played: 0, score: 0 }, calculos: { played: 0, score: 0 }, palabras: { played: 0, score: 0 }, general: { played: 0, score: 0 } } 
+                };
+                localDB.players.push(existing);
+            }
+            localDB.currentPlayerName = name; document.getElementById('player-input').value = ''; 
+            saveCloudStorage(); updateUIStats(); nav('screen-modules');
+        }
+
+        function updateUIStats() {
+            let p = getActivePlayer(); if(!p) return;
+            document.getElementById('welcome-player-text').textContent = `Operador activo: ${p.name}`;
+            document.getElementById('ui-vault-total').textContent = formatDataString(p.vaultScore);
+            
+            document.querySelectorAll('.module-btn').forEach(btn => {
+                let mod = btn.getAttribute('data-module'); let prog = p.progress[mod]; let progEl = document.getElementById(`prog-${mod}`);
+                progEl.innerHTML = ''; let isCompleted = prog.played >= state.totalCards;
+                if(isCompleted) { progEl.classList.add('completed-battery'); progEl.style.borderColor = "var(--color-success)"; } else { progEl.classList.remove('completed-battery'); progEl.style.borderColor = ""; }
+                for(let i=0; i < state.totalCards; i++) {
+                    let seg = document.createElement('div'); seg.className = 'battery-segment';
+                    if (i < prog.played) {
+                        seg.classList.add('filled');
+                        if(!isCompleted){
+                            if(mod === 'informatica') { seg.style.background = '#00f0ff'; seg.style.boxShadow = '0 0 5px #00f0ff'; }
+                            if(mod === 'calculos') { seg.style.background = '#39ff14'; seg.style.boxShadow = '0 0 5px #39ff14'; }
+                            if(mod === 'palabras') { seg.style.background = '#ff00ff'; seg.style.boxShadow = '0 0 5px #ff00ff'; }
+                            if(mod === 'general') { seg.style.background = '#ffaa00'; seg.style.boxShadow = '0 0 5px #ffaa00'; }
+                        }
+                    }
+                    progEl.appendChild(seg);
+                }
+            });
+        }
+
+        // ==========================================
+        // JUEGO INDIVIDUAL (MODO TARJETAS)
+        // ==========================================
+        function initGame(moduleName) {
+            AudioEngine.resume(); AudioEngine.sndClick();
+            state.currentModule = moduleName; state.isAnimating = false; state.securityStrikes = 0; state.isIntentionalExit = false;
+            document.body.className = `theme-${moduleName}`; requestFS();
+            
+            let p = getActivePlayer(); let prog = p.progress[moduleName];
+            if(prog.played >= state.totalCards) { prog.played = 0; prog.score = 0; saveCloudStorage(); }
+            state.cardsPlayed = prog.played; state.score = prog.score;
+            
+            let shuffledPrizes = shuffle(PRIZES_POOL); let uniqueQuestions = DB_MODULES[moduleName] || []; 
+            let shuffledQuestions = shuffle(uniqueQuestions).slice(0, state.totalCards);
+            while(shuffledQuestions.length < state.totalCards) { shuffledQuestions.push(uniqueQuestions[Math.floor(Math.random() * uniqueQuestions.length)]); }
+
+            state.boardData = [];
+            for(let i = 0; i < state.totalCards; i++) { 
+                let st = i < state.cardsPlayed ? 'won' : 'hidden';
+                state.boardData.push({ id: i, prize: shuffledPrizes[i] || 100, questionData: shuffledQuestions[i], status: st }); 
+            }
+
+            renderBoardHTML(); document.getElementById('ui-score').textContent = formatDataString(state.score); document.getElementById('ui-cards-left').textContent = `${state.cardsPlayed}/${state.totalCards}`;
+            nav('screen-game');
+        }
+
+        function renderBoardHTML() {
+            const grid = document.getElementById('grid-cards'); grid.innerHTML = '';
+            state.boardData.forEach((cardData, i) => {
+                let cardEl = document.createElement('div'); cardEl.className = 'card';
+                if(cardData.status !== 'hidden') cardEl.classList.add('revealed', `state-${cardData.status}`);
+                cardEl.id = `card-${i}`;
+                let iconHtml = ''; if(cardData.status === 'won') iconHtml = '✔️'; if(cardData.status === 'lost') iconHtml = '❌';
+                cardEl.innerHTML = `<div class="card-inner"><div class="card-front"><span class="card-number">${i + 1}</span></div><div class="card-back"><span class="card-prize">${formatDataString(cardData.prize)}</span><div class="card-status-icon">${iconHtml}</div></div></div>`;
+                cardEl.onclick = () => handleCardClick(i); grid.appendChild(cardEl);
+            });
+        }
+
+        function handleCardClick(id) {
+            if (state.isAnimating) return; let cardData = state.boardData[id]; if (!cardData || cardData.status !== 'hidden') return;
+            state.isAnimating = true; state.currentCardId = id;
+            let cardEl = document.getElementById(`card-${id}`); cardEl.classList.add('revealed');
+            cardEl.querySelector('.card-status-icon').innerHTML = '<span style="font-size:2rem; animation: scanline 1s infinite">[_]</span>'; 
+            AudioEngine.sndReveal(); setTimeout(() => { openQuestionModal(cardData); }, 1500);
+        }
+
+        function openQuestionModal(cardData) {
+            const mPrize = document.getElementById('modal-prize'); const mQ = document.getElementById('modal-question'); const mOpts = document.getElementById('modal-options');
+            mPrize.style.color = 'var(--theme-primary)'; mPrize.style.textShadow = '0 0 15px var(--theme-glow)';
+            mPrize.textContent = formatDataString(cardData.prize); mQ.textContent = cardData.questionData.q;
+            
+            let allOptions = [cardData.questionData.c, ...cardData.questionData.d]; let shuffledOptions = shuffle(allOptions);
+            mOpts.innerHTML = ''; const letters = ['A', 'B', 'C', 'D'];
+
+            shuffledOptions.forEach((optText, index) => {
+                let btn = document.createElement('button'); btn.className = 'option-btn'; btn.dataset.letter = letters[index]; btn.textContent = optText;
+                let isCorrect = (optText === cardData.questionData.c); btn.onclick = () => handleAnswer(btn, isCorrect, cardData); mOpts.appendChild(btn);
+            });
+            document.getElementById('modal-overlay').classList.add('active');
+        }
+
+        function handleAnswer(clickedBtn, isCorrect, cardData) {
+            let allBtns = document.getElementById('modal-options').querySelectorAll('.option-btn'); allBtns.forEach(b => b.disabled = true);
+            let cardEl = document.getElementById(`card-${state.currentCardId}`); let iconContainer = cardEl.querySelector('.card-status-icon');
+            let p = getActivePlayer();
+
+            if (isCorrect) {
+                clickedBtn.classList.add('selected-correct'); AudioEngine.sndCorrect();
+                state.score += cardData.prize; p.vaultScore += cardData.prize; 
+                state.boardData[state.currentCardId].status = 'won'; cardEl.classList.add('state-won');
+                spawnFloatingText(SUCCESS_WORDS[Math.floor(Math.random() * SUCCESS_WORDS.length)], 'success'); iconContainer.innerHTML = '✔️';
+                setTimeout(() => spawnParticles(document.body, 'success'), 200);
+                setTimeout(() => { animatePrizeDrain(document.getElementById('modal-prize'), cardData.prize, 1500); let tickInt = setInterval(() => { AudioEngine.play(1000 + Math.random()*500, getCurrentWave(), 0.05, 0.03); }, 80); setTimeout(() => clearInterval(tickInt), 1500); }, 800);
+            } else {
+                clickedBtn.classList.add('selected-wrong'); AudioEngine.sndError();
+                allBtns.forEach(b => { if (b.textContent === cardData.questionData.c) { b.classList.add('reveal-correct'); } });
+                state.boardData[state.currentCardId].status = 'lost'; cardEl.classList.add('state-lost');
+                document.body.classList.add('shake-active'); document.getElementById('error-flash').classList.add('active');
+                setTimeout(() => { document.body.classList.remove('shake-active'); document.getElementById('error-flash').classList.remove('active'); }, 600);
+                spawnFloatingText(ERROR_WORDS[Math.floor(Math.random() * ERROR_WORDS.length)], 'error'); iconContainer.innerHTML = '❌';
+                setTimeout(() => spawnParticles(document.body, 'error'), 200);
+                setTimeout(() => { document.getElementById('modal-prize').style.color = 'var(--color-error)'; document.getElementById('modal-prize').style.textShadow = '0 0 15px rgba(255,0,60,0.5)'; animatePrizeDrain(document.getElementById('modal-prize'), cardData.prize, 800); let tickInt = setInterval(() => { AudioEngine.play(300 - Math.random()*100, 'sawtooth', 0.05, 0.03); }, 80); setTimeout(() => clearInterval(tickInt), 800); }, 800);
+            }
+
+            state.cardsPlayed++; p.progress[state.currentModule].played = state.cardsPlayed; p.progress[state.currentModule].score = state.score;
+            saveCloudStorage();
+
+            document.getElementById('ui-score').textContent = formatDataString(state.score); document.getElementById('ui-cards-left').textContent = `${state.cardsPlayed}/${state.totalCards}`;
+
+            setTimeout(() => {
+                document.getElementById('modal-overlay').classList.remove('active'); state.isAnimating = false;
+                if (state.cardsPlayed >= state.totalCards) { 
+                    AudioEngine.sndWinGame(); document.getElementById('ui-final-score').textContent = formatDataString(state.score);
+                    nav('screen-end'); spawnParticles(document.body, 'success');
+                }
+            }, 3000); 
+        }
+
+        // ==========================================
+        // NUEVAS REGLAS DE LA ARENA (10 RONDAS DE VELOCIDAD)
+        // ==========================================
+        const BOTS = [ { id: 'bot1', name: 'Bot_Alpha_99', vaultScore: 450000 }, { id: 'bot2', name: 'Sistema_Omega', vaultScore: 1250000 }, { id: 'bot3', name: 'Ghost_Protocol', vaultScore: 50000 }, { id: 'bot4', name: 'Auto_Hacker_V2', vaultScore: 890000 } ];
+
+        function initArena() {
+            AudioEngine.resume(); AudioEngine.sndClick();
+            if(isOnline) {
+                document.getElementById('arena-title-ui').textContent = "ARENA OMNI-VERSAL (ONLINE)";
+                document.getElementById('arena-sub-ui').textContent = "Buscando oponentes reales en la red...";
+                saveCloudStorage(); 
+                fetchArenaPlayers();
+            } else {
+                document.getElementById('arena-title-ui').textContent = "ARENA DE SIMULACIÓN";
+                document.getElementById('arena-sub-ui').textContent = "Sin conexión: Entrenamiento contra Inteligencia Artificial.";
+                renderBotArenaList();
+            }
+            nav('screen-arena');
+        }
+
+        async function fetchArenaPlayers() {
+            let p = getActivePlayer();
+            if(!p) return;
+            const { data } = await supabaseClient.from('millo_players').select('id, name, vault_score, last_seen').neq('id', p.id);
+            if (data) {
+                const tenMinsAgo = new Date(Date.now() - 10 * 60000);
+                state.onlinePlayers = data.filter(player => new Date(player.last_seen) > tenMinsAgo);
+                if(!document.getElementById('screen-arena').classList.contains('hidden')) renderArenaList();
+            }
+        }
+
+        function setupRealtimeListeners() {
+            supabaseClient.channel('public:millo_players')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'millo_players' }, payload => { fetchArenaPlayers(); }).subscribe();
+
+            supabaseClient.channel('public:millo_challenges')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'millo_challenges' }, payload => {
+                    const data = payload.new;
+                    let activeId = getActivePlayer()?.id;
+                    if (!activeId) return;
+
+                    if (payload.eventType === 'DELETE') {
+                        if (state.activeChallengeId === payload.old.id) { document.getElementById('modal-challenge').classList.remove('active'); state.activeChallengeId = null; } return;
+                    }
+                    if (data.target_id === activeId && data.status === 'pending') showIncomingChallenge(data);
+                    
+                    if ((data.target_id === activeId || data.challenger_id === activeId) && data.status === 'active') { 
+                        if(state.activeChallengeId !== data.id) { startDuelCloud(data); }
+                        else { syncOnlineDuelState(data); } // Sincroniza avance de preguntas
+                    }
+                    if ((data.target_id === activeId || data.challenger_id === activeId) && data.status === 'resolved' && state.activeChallengeId === data.id) { endDuelCloud(data); }
+                }).subscribe();
+        }
+
+        function renderArenaList() {
+            if(!isOnline) return renderBotArenaList();
+            const list = document.getElementById('arena-list'); list.innerHTML = '';
+            const displayOnline = state.onlinePlayers.slice(0, 4);
+            if(displayOnline.length === 0) { list.innerHTML = '<div style="color:#aaa; text-align:center; margin-top:5vh;">No hay operadores reales.<br>Intenta más tarde o apaga el internet para jugar con IA.</div>'; return; }
+            displayOnline.forEach(p => {
+                let div = document.createElement('div'); div.className = 'online-player';
+                div.innerHTML = `<div class="online-info"><span class="online-name">${p.name}</span><span class="online-gb">Fondos: ${formatDataString(p.vault_score)}</span></div><button class="btn-challenge" data-id="${p.id}" data-name="${p.name}">Atacar</button>`;
+                div.querySelector('button').addEventListener('click', (e) => sendCloudChallenge(e.target.dataset.id, e.target.dataset.name)); list.appendChild(div);
+            });
+        }
+
+        let selectedDuelTopic = null;
+        document.querySelectorAll('.duel-topic-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.duel-topic-btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); selectedDuelTopic = btn.dataset.topic; document.getElementById('btn-mc-accept').disabled = false; }); });
+
+        // Genera 10 preguntas aleatorias para el duelo
+        function generate10QuestionsArray(topic) {
+            let uniqueQ = DB_MODULES[topic] || []; let shuffled = shuffle(uniqueQ);
+            let result = [];
+            for(let i=0; i<10; i++) { result.push(i < shuffled.length ? shuffled[i] : uniqueQ[Math.floor(Math.random() * uniqueQ.length)]); }
+            return result;
+        }
+
+        async function sendCloudChallenge(targetId, targetName) { 
+            AudioEngine.sndClick(); 
+            let p = getActivePlayer();
+            try { 
+                await supabaseClient.from('millo_challenges').insert({ 
+                    challenger_id: p.id, challenger_name: p.name, target_id: targetId, target_name: targetName, 
+                    topic1: 'informatica', status: 'pending', q_index: 0, p1_score: 0, p2_score: 0
+                }); 
+                spawnFloatingText("HACK ENVIADO", "success"); 
+            } catch(e) { spawnFloatingText("ERROR", "error"); } 
+        }
+
+        function showIncomingChallenge(data) { 
+            AudioEngine.sndAlarm(); document.getElementById('mc-msg').textContent = `El operador ${data.challenger_name} te ataca.`; 
+            selectedDuelTopic = null; document.querySelectorAll('.duel-topic-btn').forEach(b => b.classList.remove('selected')); 
+            document.getElementById('btn-mc-accept').disabled = true; state.activeChallengeId = data.id; 
+            const mcModal = document.getElementById('modal-challenge'); mcModal.classList.add('active'); 
+            
+            document.getElementById('btn-mc-cancel').onclick = async () => { 
+                AudioEngine.sndClick(); mcModal.classList.remove('active'); await supabaseClient.from('millo_challenges').delete().eq('id', data.id); 
+            }; 
+            document.getElementById('btn-mc-accept').onclick = async () => { 
+                AudioEngine.sndClick(); mcModal.classList.remove('active'); 
+                const finalTopic = [data.topic1, selectedDuelTopic][Math.floor(Math.random() * 2)]; 
+                await supabaseClient.from('millo_challenges').update({ topic2: selectedDuelTopic, final_topic: finalTopic, q_index: 0, status: 'active' }).eq('id', data.id); 
+            }; 
+        }
+
+        function startDuelCloud(data) { 
+            state.currentModule = 'duel'; document.body.className = 'theme-duel'; state.activeChallengeId = data.id; state.currentChallenge = data;
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById('modal-challenge').classList.remove('active'); 
+            document.getElementById('screen-duel').classList.remove('hidden'); requestFS(); 
+            
+            let activeId = getActivePlayer().id;
+            document.getElementById('duel-p1-name').textContent = getActivePlayer().name; 
+            document.getElementById('duel-p2-name').textContent = (data.challenger_id === activeId) ? data.target_name : data.challenger_name; 
+            
+            // Re-sembrar la misma semilla para ambos jugadores
+            state.botDuelQuestions = generate10QuestionsArray(data.final_topic);
+            syncOnlineDuelState(data);
+        }
+
+        function syncOnlineDuelState(data) {
+            state.currentChallenge = data;
+            let activeId = getActivePlayer().id;
+            
+            let isP1 = (data.challenger_id === activeId);
+            document.getElementById('duel-score-p1').textContent = isP1 ? data.p1_score : data.p2_score;
+            document.getElementById('duel-score-p2').textContent = isP1 ? data.p2_score : data.p1_score;
+
+            if (data.q_index >= 10) { return; } // Termina
+
+            document.getElementById('duel-topic-label').textContent = `PREGUNTA ${data.q_index + 1} DE 10`; 
+            
+            const qData = state.botDuelQuestions[data.q_index];
+            document.getElementById('duel-question').textContent = qData.q; 
+            const dOpts = document.getElementById('duel-options'); dOpts.innerHTML = ''; const letters = ['A', 'B', 'C', 'D']; 
+            
+            shuffle([qData.c, ...qData.d]).forEach((optText, index) => { 
+                let btn = document.createElement('button'); btn.className = 'option-btn'; btn.dataset.letter = letters[index]; btn.textContent = optText; 
+                btn.onclick = () => handleCloudDuelAnswer(btn, optText === qData.c, data); dOpts.appendChild(btn); 
+            }); 
+            
+            startDuelTimer(data.id, async () => { 
+                if(data.challenger_id === activeId) {
+                    let nextQ = data.q_index + 1;
+                    if(nextQ >= 10) { await supabaseClient.from('millo_challenges').update({ status: 'resolved', winner_id: data.p1_score > data.p2_score ? data.challenger_id : (data.p2_score > data.p1_score ? data.target_id : null) }).eq('id', data.id); }
+                    else { await supabaseClient.from('millo_challenges').update({ q_index: nextQ }).eq('id', data.id); }
+                }
+            }, 15); 
+        }
+
+        async function handleCloudDuelAnswer(btn, isCorrect, data) { 
+            let allBtns = document.getElementById('duel-options').querySelectorAll('.option-btn'); allBtns.forEach(b => b.disabled = true); 
+            let activeId = getActivePlayer().id;
+
+            if(isCorrect) { 
+                clearInterval(state.duelTimer); btn.classList.add('selected-correct'); AudioEngine.sndCorrect(); spawnFloatingText("+1 PUNTO", "success");
+                let isP1 = (data.challenger_id === activeId);
+                let updateData = { q_index: data.q_index + 1 };
+                if(isP1) updateData.p1_score = data.p1_score + 1; else updateData.p2_score = data.p2_score + 1;
+                
+                if (updateData.q_index >= 10) {
+                    updateData.status = 'resolved';
+                    let finalP1 = isP1 ? updateData.p1_score : data.p1_score; let finalP2 = isP1 ? data.p2_score : updateData.p2_score;
+                    updateData.winner_id = finalP1 > finalP2 ? data.challenger_id : (finalP2 > finalP1 ? data.target_id : null);
+                }
+                await supabaseClient.from('millo_challenges').update(updateData).eq('id', data.id); 
+            } else { 
+                btn.classList.add('selected-wrong'); AudioEngine.sndError(); document.body.classList.add('shake-active'); setTimeout(()=>document.body.classList.remove('shake-active'), 500);
+            } 
+        }
+
+        function endDuelCloud(data) { 
+            clearInterval(state.duelTimer); document.getElementById('screen-duel').classList.add('hidden'); document.body.className = ''; 
+            let activeId = getActivePlayer().id;
+
+            let isP1 = (data.challenger_id === activeId);
+            let myScore = isP1 ? data.p1_score : data.p2_score;
+            
+            let iWon = (data.winner_id === activeId); 
+            let isTie = (data.winner_id === null);
+
+            let gbWon = myScore * 1000;
+
+            if(iWon) showDuelResult("🏆", "¡VICTORIA!", "var(--color-success)", `Venciste en el hackeo. Ganas ${formatDataString(gbWon)}`, gbWon); 
+            else if(isTie) showDuelResult("🤝", "EMPATE", "#fff", `Lucha igualada. Ganas ${formatDataString(gbWon)}`, gbWon); 
+            else showDuelResult("💀", "DERROTA", "var(--color-error)", "El enemigo fue más rápido. Pierdes 500 GB.", -500); 
+            
+            state.activeChallengeId = null; state.currentChallenge = null;
+        }
+
+        // ==========================================
+        // LÓGICA OFFLINE (BOTS - 10 PREGUNTAS CARRERA)
+        // ==========================================
+        function renderBotArenaList() {
+            const list = document.getElementById('arena-list'); list.innerHTML = '';
+            BOTS.slice(0, 4).forEach(b => {
+                let div = document.createElement('div'); div.className = 'online-player is-bot';
+                div.innerHTML = `<div class="online-info"><span class="online-name">🤖 ${b.name}</span><span class="online-gb">Fondos IA: ${formatDataString(b.vaultScore)}</span></div><button class="btn-challenge" data-id="${b.id}">Desafiar IA</button>`;
+                div.querySelector('button').addEventListener('click', () => startBotDuel(b));
+                list.appendChild(div);
+            });
+        }
+
+        function startBotDuel(bot) {
+            if (state.isAnimating) return; state.isAnimating = true;
+            AudioEngine.resume(); AudioEngine.sndClick(); spawnFloatingText("INICIALIZANDO...", "success");
+            
+            setTimeout(() => {
+                state.isAnimating = false; state.currentModule = 'duel'; document.body.className = 'theme-duel';
+                document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById('screen-duel').classList.remove('hidden'); requestFS();
+
+                let p = getActivePlayer();
+                document.getElementById('duel-p1-name').textContent = p.name; document.getElementById('duel-p2-name').textContent = bot.name;
+
+                let allQuestions = []; Object.values(DB_MODULES).forEach(arr => allQuestions = allQuestions.concat(arr));
+                state.botDuelQuestions = shuffle(allQuestions).slice(0, 10); // 10 Preguntas
+                state.botDuelCurrent = 0; state.botScore = 0; state.playerScore = 0; state.currentBot = bot;
+
+                renderBotDuelQuestion();
+            }, 1000);
+        }
+
+        function renderBotDuelQuestion() {
+            document.getElementById('duel-score-p1').textContent = state.playerScore;
+            document.getElementById('duel-score-p2').textContent = state.botScore;
+
+            if(state.botDuelCurrent >= 10) {
+                // Fin del Duelo
+                let gbWon = state.playerScore * 1000;
+                if(state.playerScore > state.botScore) showDuelResult("🏆", "¡VICTORIA!", "var(--color-success)", `Venciste a la IA. Ganas ${formatDataString(gbWon)}`, gbWon);
+                else if(state.playerScore === state.botScore) showDuelResult("🤝", "EMPATE", "#fff", `Empate táctico. Te llevas ${formatDataString(gbWon)}`, gbWon);
+                else showDuelResult("💀", "DERROTA", "var(--color-error)", "La IA fue superior. Pierdes 500 GB.", -500);
+                return;
+            }
+
+            let qData = state.botDuelQuestions[state.botDuelCurrent];
+            document.getElementById('duel-topic-label').textContent = `PREGUNTA ${state.botDuelCurrent + 1} DE 10`;
+            document.getElementById('duel-question').textContent = qData.q;
+            
+            let allOptions = [qData.c, ...qData.d]; let shuffledOptions = shuffle(allOptions);
+            const dOpts = document.getElementById('duel-options'); dOpts.innerHTML = ''; const letters = ['A', 'B', 'C', 'D'];
+
+            shuffledOptions.forEach((optText, index) => {
+                let btn = document.createElement('button'); btn.className = 'option-btn'; btn.dataset.letter = letters[index]; btn.textContent = optText;
+                btn.onclick = () => resolveBotDuel(btn, optText === qData.c, true); dOpts.appendChild(btn);
+            });
+
+            startDuelTimer(null, () => resolveBotDuel(null, false, true, true), 15);
+            
+            // La IA es competitiva: Responde entre 3 y 12 segundos.
+            let botThinkTime = (Math.random() * 9 + 3) * 1000;
+            clearTimeout(state.botTimeout);
+            state.botTimeout = setTimeout(() => { resolveBotDuel(null, true, false); }, botThinkTime);
+        }
+
+        function startDuelTimer(challengeId, timeoutCallback, duration = 15) {
+            state.duelTimeLeft = duration; const timerEl = document.getElementById('duel-timer');
+            timerEl.textContent = duration.toFixed(1); timerEl.style.color = "var(--color-gold)";
+            clearInterval(state.duelTimer);
+            state.duelTimer = setInterval(() => {
+                state.duelTimeLeft -= 0.1;
+                if(state.duelTimeLeft <= 0) {
+                    clearInterval(state.duelTimer); timerEl.textContent = "0.0";
+                    let allBtns = document.getElementById('duel-options').querySelectorAll('.option-btn'); allBtns.forEach(b => b.disabled = true);
+                    timeoutCallback();
+                } else {
+                    timerEl.textContent = state.duelTimeLeft.toFixed(1);
+                    if(state.duelTimeLeft < 5) { timerEl.style.color = "var(--color-error)"; AudioEngine.sndDuelTick(); }
+                }
+            }, 100);
+        }
+
+        function resolveBotDuel(btn, isCorrect, byPlayer, isTimeout = false) {
+            // El jugador falló su click. No avanza la ronda, se desactiva su boton y espera a la IA o tiempo.
+            if (byPlayer && !isCorrect && !isTimeout) {
+                if (btn) { btn.classList.add('selected-wrong'); btn.disabled = true; }
+                AudioEngine.sndError(); document.body.classList.add('shake-active'); setTimeout(()=>document.body.classList.remove('shake-active'), 500);
+                return;
+            }
+
+            // Alguien acerta o el tiempo se acaba -> Avanza ronda
+            clearInterval(state.duelTimer); clearTimeout(state.botTimeout);
+            let allBtns = document.getElementById('duel-options').querySelectorAll('.option-btn'); allBtns.forEach(b => b.disabled = true);
+
+            if (byPlayer && isCorrect) {
+                if (btn) btn.classList.add('selected-correct'); AudioEngine.sndCorrect(); spawnFloatingText("+1 PUNTO", "success");
+                state.playerScore++;
+            } else if (!byPlayer) {
+                // El bot robó el punto
+                AudioEngine.sndError(); spawnFloatingText("IA +1", "error");
+                state.botScore++;
+            }
+
+            setTimeout(() => { state.botDuelCurrent++; renderBotDuelQuestion(); }, 2000);
+        }
+
+        function showDuelResult(icon, title, color, msg, prizeAmount) {
+            const mdrTitle = document.getElementById('mdr-title'); const mdrMsg = document.getElementById('mdr-msg'); const mdrIcon = document.getElementById('mdr-icon');
+            document.getElementById('modal-duel-result').classList.add('active');
+            mdrIcon.textContent = icon; mdrTitle.textContent = title; mdrTitle.style.color = color; mdrMsg.textContent = msg;
+
+            let p = getActivePlayer();
+            if (prizeAmount > 0) {
+                p.vaultScore += prizeAmount; AudioEngine.sndWinGame(); spawnParticles(document.body, 'success');
+            } else if (prizeAmount < 0) {
+                p.vaultScore = Math.max(0, p.vaultScore + prizeAmount);
+                document.body.classList.add('shake-active'); setTimeout(() => { document.body.classList.remove('shake-active'); }, 600);
+            }
+            saveCloudStorage();
+        }
+
+        document.getElementById('btn-mdr-close').addEventListener('click', () => {
+            AudioEngine.resume(); AudioEngine.sndClick(); document.getElementById('modal-duel-result').classList.remove('active');
+            document.getElementById('screen-duel').classList.add('hidden'); updateUIStats(); nav('screen-arena');
+        });
+
+        // ==========================================
+        // UTILIDADES DE SEGURIDAD Y EVENTOS
+        // ==========================================
+        function handleSecurityViolation() {
+            if (!localDB.currentPlayerName || !document.getElementById('screen-arena').classList.contains('hidden') || !document.getElementById('screen-modules').classList.contains('hidden')) return;
+            document.getElementById('security-overlay').classList.add('active'); AudioEngine.sndAlarm();
+            setTimeout(() => { document.getElementById('btn-sec-ack').style.display = 'block'; }, 1500);
+        }
+
+        window.addEventListener('blur', () => { if(!document.getElementById('screen-game').classList.contains('hidden') || !document.getElementById('screen-duel').classList.contains('hidden')) handleSecurityViolation(); });
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); AudioEngine.sndError(); spawnFloatingText('ACCESO DENEGADO', 'denied'); document.body.classList.add('shake-active'); setTimeout(() => { document.body.classList.remove('shake-active'); }, 300); });
         
-        // ... (resto de implementaciones, que son idénticas a la v1.1) ...
-        verificarLogros = function() { if (estadoJuego.preguntaActualIdx >= 9 && !estadoJuego.comodinesUsados) estadoJuego.logros.purista.desbloqueado = true; if (estadoJuego.aciertosConversion >= 3) estadoJuego.logros.calculadora.desbloqueado = true; if (estadoJuego.aciertosHistoria >= 3) estadoJuego.logros.historiador.desbloqueado = true; };
-        finalizarJuego = function(victoria) { estadoJuego.enPartida = false; let nivelAlcanzadoIdx = 0; if (victoria) { nivelAlcanzadoIdx = 14; estadoJuego.logros.perfecto.desbloqueado = true; } else { if (estadoJuego.preguntaActualIdx >= 10) nivelAlcanzadoIdx = 9; else if (estadoJuego.preguntaActualIdx >= 5) nivelAlcanzadoIdx = 4; else nivelAlcanzadoIdx = -1; } localStorage.setItem('logrosAscenso', JSON.stringify(estadoJuego.logros)); const capacidad = nivelAlcanzadoIdx > -1 ? niveles[nivelAlcanzadoIdx] : "Ninguna"; guardarPuntuacion(estadoJuego.nombreJugador, capacidad, nivelAlcanzadoIdx + 1); document.getElementById('semilla-final-display').textContent = `Código de Semilla de esta partida: ${estadoJuego.seed}`; mostrarPantalla('salon-screen'); };
-        guardarPuntuacion = function(nombre, capacidad, valor) { const fecha = new Date().toLocaleDateString(); const scores = estadoJuego.puntuaciones; scores.push({ nombre, capacidad, fecha, valor }); scores.sort((a, b) => b.valor - a.valor); estadoJuego.puntuaciones = scores.slice(0, 10); localStorage.setItem('puntuacionesAscenso', JSON.stringify(estadoJuego.puntuaciones)); };
-        actualizarTablaPuntuaciones = function() { const tbody = document.querySelector('#tabla-puntuaciones tbody'); tbody.innerHTML = ''; estadoJuego.puntuaciones.forEach((score, index) => { const row = tbody.insertRow(); row.innerHTML = `<td>${index + 1}</td><td>${score.nombre}</td><td>${score.capacidad}</td><td>${score.fecha}</td>`; }); };
-        actualizarLogrosDisplay = function() { const lista = document.getElementById('logros-lista'); lista.innerHTML = ''; for (const key in estadoJuego.logros) { const logro = estadoJuego.logros[key]; const li = document.createElement('li'); li.textContent = logro.texto; if (logro.desbloqueado) li.classList.add('desbloqueado'); lista.appendChild(li); } };
-        actualizarArbol = function() { const arbolCapacidadEl = document.getElementById('arbol-capacidad'); arbolCapacidadEl.innerHTML = ''; [...niveles].reverse().forEach((nivel, index) => { const li = document.createElement('li'); const nivelReal = niveles.length - 1 - index; li.textContent = nivel; if (nivelReal < estadoJuego.preguntaActualIdx) li.classList.add('nivel-superado'); if (nivelReal === estadoJuego.preguntaActualIdx) li.classList.add('nivel-actual'); if (nivelReal === 4 || nivelReal === 9) li.classList.add('nivel-seguro'); arbolCapacidadEl.appendChild(li); }); };
-        reiniciarYJugar = function() { resetEstadoJuego(); document.getElementById('jugador-input').textContent = ''; document.getElementById('teclado-virtual').querySelector('.accept-key').disabled = true; mostrarPantalla('registro-screen'); };
-        cargarPregunta = function() { actualizarArbol(); const preguntaData = estadoJuego.preguntasRonda[estadoJuego.preguntaActualIdx]; document.getElementById('pregunta-contenedor').textContent = preguntaData.pregunta; const respuestasCont = document.getElementById('respuestas-contenedor'); respuestasCont.innerHTML = ''; preguntaData.opciones.forEach((opcion, index) => { const btn = document.createElement('button'); btn.className = 'respuesta-btn'; btn.innerHTML = `<span class="respuesta-letra">${['A', 'B', 'C', 'D'][index]}:</span> ${opcion}`; btn.onclick = () => seleccionarRespuesta(btn, index); respuestasCont.appendChild(btn); }); };
-        seleccionarRespuesta = function(btn, index) { document.querySelectorAll('.respuesta-btn').forEach(b => b.classList.remove('seleccionada')); btn.classList.add('seleccionada'); document.querySelectorAll('.respuesta-btn').forEach(b => b.disabled = true); setTimeout(() => verificarRespuesta(index), 2000); };
-        verificarRespuesta = function(selectedIndex) { const preguntaData = estadoJuego.preguntasRonda[estadoJuego.preguntaActualIdx]; if (selectedIndex === preguntaData.respuesta) { document.querySelectorAll('.respuesta-btn')[selectedIndex].classList.add('correcta'); if(preguntaData.categoria === "Conversion") estadoJuego.aciertosConversion++; if(preguntaData.categoria === "Historia") estadoJuego.aciertosHistoria++; verificarLogros(); document.getElementById('fragmento-texto').textContent = preguntaData.conocimiento; document.getElementById('fragmento-overlay').classList.add('active'); setTimeout(() => { document.getElementById('fragmento-overlay').classList.remove('active'); estadoJuego.preguntaActualIdx++; if (loreInterludios[estadoJuego.preguntaActualIdx - 1]) { const lore = loreInterludios[estadoJuego.preguntaActualIdx - 1]; document.getElementById('lore-titulo').textContent = lore.titulo; document.getElementById('lore-texto').textContent = lore.texto; mostrarPantalla('lore-interludio-screen'); } else if (estadoJuego.preguntaActualIdx >= estadoJuego.preguntasRonda.length) { finalizarJuego(true); } else { cargarPregunta(); } }, 4000); } else { document.getElementById('juego-screen').classList.add('glitch'); const botones = document.querySelectorAll('.respuesta-btn'); botones[selectedIndex].classList.add('incorrecta'); botones[preguntaData.respuesta].classList.add('correcta'); setTimeout(() => { document.getElementById('juego-screen').classList.remove('glitch'); finalizarJuego(false); }, 3000); } };
+        document.getElementById('btn-sec-ack').addEventListener('click', () => { 
+            AudioEngine.resume(); AudioEngine.sndClick(); requestFS();
+            document.getElementById('security-overlay').classList.remove('active'); document.getElementById('btn-sec-ack').style.display='none'; 
+            if(document.getElementById('sec-title-text').textContent.includes("CRÍTICO")) { nav('screen-players'); } 
+        });
 
-        // --- V. SECUENCIA DE ARRANQUE (MAIN EXECUTION) ---
-        // Esta es la única sección que ejecuta código al cargar. Todo lo anterior son solo definiciones.
+        function buildVirtualKeyboard() {
+            const rows = [ ['Q','W','E','R','T','Y','U','I','O','P'], ['A','S','D','F','G','H','J','K','L','Ñ'], ['Z','X','C','V','B','N','M','_'] ];
+            const vk = document.getElementById('virtual-keyboard'); vk.innerHTML = '';
+            rows.forEach(row => { let rowDiv = document.createElement('div'); rowDiv.className = 'key-row'; row.forEach(key => { let btn = document.createElement('button'); btn.className = 'key'; btn.textContent = key; btn.onclick = () => handleKeyPress(key); rowDiv.appendChild(btn); }); vk.appendChild(rowDiv); });
+            let specRow = document.createElement('div'); specRow.className = 'key-row';
+            let btnSpace = document.createElement('button'); btnSpace.className = 'key special'; btnSpace.textContent = 'ESPACIO'; btnSpace.onclick = () => handleKeyPress(' ');
+            let btnDel = document.createElement('button'); btnDel.className = 'key special'; btnDel.textContent = 'BORRAR'; btnDel.onclick = () => handleKeyPress('BACKSPACE');
+            specRow.appendChild(btnSpace); specRow.appendChild(btnDel); vk.appendChild(specRow);
+        }
 
-        // 1. Inyectar el HTML en los contenedores de pantalla.
-        rellenarHTML();
-
-        // 2. Inicializar el estado del juego por primera vez.
-        resetEstadoJuego();
-
-        // 3. Construir componentes dinámicos como el teclado.
-        generarTeclado();
-
-        // 4. Asignar todos los listeners de eventos a los nuevos elementos del DOM.
-        document.getElementById('iniciar-juego-btn').onclick = () => iniciarJuego();
-        document.getElementById('iniciar-semilla-btn').onclick = iniciarJuegoConSemilla;
-        document.getElementById('mostrar-salon-btn').onclick = () => mostrarPantalla('salon-screen');
-        document.getElementById('continuar-lore-btn').onclick = continuarJuegoDesdeLore;
-        document.getElementById('reiniciar-btn').onclick = reiniciarYJugar;
-        document.getElementById('volver-menu-btn').onclick = () => mostrarPantalla('menu-screen');
-        document.getElementById('reactivar-fullscreen-btn').onclick = entrarEnPantallaCompleta;
-        document.getElementById('comodin-5050').onclick = usarComodin5050;
-        document.getElementById('comodin-sysadmin').onclick = usarComodinSysAdmin;
-        document.getElementById('comodin-red').onclick = usarComodinRed;
+        function handleKeyPress(key) { AudioEngine.resume(); AudioEngine.sndKey(); let currentText = document.getElementById('player-input').value; if (key === 'BACKSPACE') { document.getElementById('player-input').value = currentText.slice(0, -1); } else if (currentText.length < 15) { document.getElementById('player-input').value = currentText + key; } }
         
-        // Listeners globales para la pantalla completa.
-        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(
-            event => document.addEventListener(event, manejarCambioDePantallaCompleta, false)
-        );
+        document.addEventListener('keydown', (e) => { 
+            if (document.getElementById('screen-players').classList.contains('hidden')) return; 
+            const key = e.key.toUpperCase(); const validChars = /^[A-ZÑ0-9_ ]$/; 
+            if (validChars.test(key) && key.length === 1) { handleKeyPress(key); } else if (e.key === 'Backspace') { handleKeyPress('BACKSPACE'); } else if (e.key === 'Enter') { selectPlayer(document.getElementById('player-input').value.trim()); } 
+        });
 
-        // 5. Iniciar la secuencia visual de precarga.
-        iniciarPrecarga();
+        document.getElementById('btn-goto-players').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); requestFS(); if(localDB.currentPlayerName && getActivePlayer()) { updateUIStats(); nav('screen-modules'); } else { nav('screen-players'); } });
+        document.getElementById('btn-back-welcome').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); nav('screen-welcome'); });
+        document.getElementById('btn-save-player').addEventListener('click', () => { selectPlayer(document.getElementById('player-input').value.trim()); });
+        document.getElementById('btn-back-players').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); localDB.currentPlayerName = null; saveCloudStorage(); nav('screen-welcome'); });
+        document.querySelectorAll('.module-btn').forEach(btn => { btn.addEventListener('click', () => { initGame(btn.getAttribute('data-module')); }); });
+        document.getElementById('btn-exit-game').addEventListener('click', () => { if (state.isAnimating) return; AudioEngine.resume(); AudioEngine.sndClick(); state.isIntentionalExit = true; exitFS(); document.body.className=''; updateUIStats(); nav('screen-modules'); });
+        document.getElementById('btn-restart').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); document.body.className=''; updateUIStats(); nav('screen-modules'); });
+        document.getElementById('btn-goto-arena').addEventListener('click', () => { initArena(); });
+        document.getElementById('btn-exit-arena').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); document.body.className=''; nav('screen-modules'); });
 
-    });
+        buildVirtualKeyboard();
     </script>
 </body>
 </html>
