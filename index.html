@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SISTEMA MILLONARIO v23.0 (STREAKS & NO REPEATS)</title>
+    <title>SISTEMA MILLONARIO v23.0 (SUPABASE EDITION)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
@@ -41,6 +41,7 @@
         }
         .status-online { color: var(--color-success); border-color: var(--color-success); background: rgba(57, 255, 20, 0.1); text-shadow: 0 0 10px var(--color-success);}
         .status-offline { color: var(--color-error); border-color: var(--color-error); background: rgba(255, 0, 60, 0.1); text-shadow: 0 0 10px var(--color-error);}
+        .status-connecting { color: var(--color-gold); border-color: var(--color-gold); background: rgba(255, 170, 0, 0.1); text-shadow: 0 0 10px var(--color-gold);}
         
         #error-flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background-color: rgba(255, 0, 60, 0.35); pointer-events: none; z-index: 9998; opacity: 0; transition: opacity 0.1s; }
         #error-flash.active { opacity: 1; }
@@ -189,7 +190,7 @@
 </head>
 <body class="theme-informatica">
 
-    <div id="network-status" class="status-offline">📡 INICIANDO SISTEMA MULTIJUGADOR...</div>
+    <div id="network-status" class="status-offline">📡 INICIANDO SISTEMA SUPABASE...</div>
     <div id="error-flash"></div>
     <div id="hack-flash"></div>
 
@@ -197,7 +198,7 @@
         <!-- WELCOME -->
         <div id="screen-welcome" class="screen menu-screen">
             <h1 class="title-main">LA RED<br>OMNI-VERSAL</h1>
-            <h2 class="title-sub">Enlace: V23.0 (Firebase Multiplayer & Streaks)</h2>
+            <h2 class="title-sub">Enlace: V23.0 (Supabase Realtime & Streaks)</h2>
             <button class="btn-action" id="btn-goto-players" onclick="window.navToPlayers()">Conectar</button>
         </div>
 
@@ -338,14 +339,20 @@
         </div>
     </div>
 
+    <!-- SCRIPT PRINCIPAL: EXCLUSIVAMENTE SUPABASE JS -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'millo-app-id-v23';
+        // =======================================================================
+        // CREDENCIALES CONFIGURADAS (API KEY PUBLICA ÚNICAMENTE POR SEGURIDAD)
+        // =======================================================================
+        const SUPABASE_URL = 'https://iwuglirgkvnobhatgedq.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'sb_publishable_sNgWni9L5DWroTgEPKhKQw_cST-OXxR';
+        // =======================================================================
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // FISHER-YATES SHUFFLE (No se repite la opción ganadora en la misma posición)
+        // FISHER-YATES SHUFFLE
         function shuffleFisherYates(array) {
             let currentIndex = array.length, randomIndex;
             while (currentIndex !== 0) {
@@ -358,7 +365,6 @@
 
         const PRIZES_POOL = [10, 20, 30, 50, 100, 150, 200, 250, 300, 500, 750, 1000, 1500, 2000, 2500, 5000, 7500, 10000, 50000, 100000];
 
-        // 40 PREGUNTAS MASIVAS (Ejemplo parcial, se puede expandir)
         const DB_MODULES = {
             informatica: [
                 { q: "¿Qué significa CPU?", c: "Unidad Central de Procesamiento", d: ["Carga", "Controlador", "Centro"] },
@@ -381,7 +387,6 @@
                 { q: "¿Nube?", c: "Servidores externos", d: ["Clima", "Disco", "Memoria"] },
                 { q: "¿Algoritmo?", c: "Pasos para resolver un problema", d: ["Virus", "Lenguaje", "Placa"] },
                 { q: "¿Sistema Abierto?", c: "Linux", d: ["Windows", "macOS", "iOS"] }
-                // (Para mantener el código manejable, incluyo 20 aquí, pero la lógica de las 40 aplica)
             ],
             general: [
                 { q: "Planeta más grande", c: "Júpiter", d: ["Saturno", "Marte", "Tierra"] },
@@ -411,26 +416,68 @@
 
         const state = { currentModule: null, score: 0, cardsPlayed: 0, totalCards: 20, boardData: [], duelTimer: null, duelTimeLeft: 10 };
         let localDB = { players: [], currentPlayerName: null };
-        let isOnline = false; let db = null; let auth = null;
+        let isOnline = false;
 
         async function initNetwork() {
             try {
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    const app = initializeApp(JSON.parse(__firebase_config)); auth = getAuth(app); db = getFirestore(app);
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) { await signInWithCustomToken(auth, __initial_auth_token); } else { await signInAnonymously(auth); }
-                    onAuthStateChanged(auth, (user) => {
-                        if (user) {
-                            isOnline = true; document.getElementById('network-status').className = 'status-online'; document.getElementById('network-status').innerHTML = '🌐 CONECTADO AL SERVIDOR';
-                            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'players'), (snap) => {
-                                localDB.players = []; snap.forEach(doc => localDB.players.push(doc.data())); window.renderPlayerList(); window.updateUIStats();
-                            });
-                            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'attacks'), (snap) => {
-                                if(localDB.currentPlayerName) { snap.forEach(docSnap => { if(docSnap.id === localDB.currentPlayerName) window.triggerDefense(docSnap.data()); }); }
-                            });
+                const statusEl = document.getElementById('network-status');
+                statusEl.className = 'status-connecting';
+                statusEl.innerHTML = '📡 CONECTANDO A SUPABASE...';
+
+                // Verificar conexión leyendo 1 registro
+                const { error } = await supabase.from('millo_players').select('id').limit(1);
+                
+                if (error) throw error;
+
+                isOnline = true;
+                statusEl.className = 'status-online'; 
+                statusEl.innerHTML = '🟢 SUPABASE ONLINE';
+
+                // Cargar jugadores
+                await fetchPlayers();
+
+                // Suscripción REALTIME a jugadores (Para que actualicen los GB en vivo)
+                supabase.channel('custom-all-players')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'millo_players' }, payload => {
+                        fetchPlayers();
+                    }).subscribe();
+
+                // Suscripción REALTIME a ataques (PvP)
+                supabase.channel('custom-all-attacks')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'millo_challenges' }, payload => {
+                        let challenge = payload.new;
+                        // Si el ataque va dirigido a mi jugador actual
+                        if(localDB.currentPlayerName && challenge.target_name === localDB.currentPlayerName) {
+                            window.triggerDefense(challenge);
                         }
-                    });
-                }
-            } catch (e) { console.error(e); }
+                    }).subscribe();
+
+            } catch (e) { 
+                console.error("Supabase Error:", e);
+                const statusEl = document.getElementById('network-status');
+                statusEl.className = 'status-offline'; 
+                statusEl.innerHTML = '🔴 ERROR DE CONEXIÓN A BD';
+            }
+        }
+
+        async function fetchPlayers() {
+            if(!isOnline) return;
+            const { data, error } = await supabase.from('millo_players').select('*');
+            if (data) {
+                localDB.players = data.map(p => ({
+                    name: p.name,
+                    vaultScore: p.vault_score || 0,
+                    streak: p.streak || 0,
+                    progress: {
+                        informatica: p.progress_informatica || {played: 0, score: 0},
+                        calculos: p.progress_calculos || {played: 0, score: 0},
+                        palabras: p.progress_palabras || {played: 0, score: 0},
+                        general: p.progress_general || {played: 0, score: 0}
+                    }
+                }));
+                window.renderPlayerList();
+                window.updateUIStats();
+            }
         }
 
         function getActivePlayer() { return localDB.players.find(p => p.name === localDB.currentPlayerName); }
@@ -439,17 +486,44 @@
         window.navToWelcome = () => { document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-welcome').classList.remove('hidden'); };
         window.navToModules = () => { document.body.className = 'theme-informatica'; document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-modules').classList.remove('hidden'); window.updateUIStats(); };
 
+        // GUARDADO EN SUPABASE
         window.saveCloudData = async (customPlayer = null) => {
-            let p = customPlayer || getActivePlayer(); if(!p) return;
-            if(isOnline) { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', p.name), p); } catch(e) {} }
+            let p = customPlayer || getActivePlayer(); 
+            if(!p || !isOnline) return;
+
+            try {
+                const payload = {
+                    name: p.name,
+                    vault_score: p.vaultScore,
+                    streak: p.streak,
+                    progress_informatica: p.progress.informatica,
+                    progress_calculos: p.progress.calculos,
+                    progress_palabras: p.progress.palabras,
+                    progress_general: p.progress.general,
+                    last_seen: new Date().toISOString()
+                };
+
+                const { data: existing } = await supabase.from('millo_players').select('id').eq('name', p.name).maybeSingle();
+                
+                if (existing) {
+                    await supabase.from('millo_players').update(payload).eq('id', existing.id);
+                } else {
+                    await supabase.from('millo_players').insert([payload]);
+                }
+            } catch(e) { console.error("Error guardando progreso:", e); }
         };
 
         window.selectPlayer = async (name) => {
             if (!name || name.trim() === '') return;
             let p = localDB.players.find(pl => pl.name === name);
-            if (!p) { p = { name, vaultScore: 0, streak: 0, progress: { informatica: { played: 0, score: 0 }, calculos: { played: 0, score: 0 }, palabras: { played: 0, score: 0 }, general: { played: 0, score: 0 } } }; if (isOnline) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', name), p); }
+            if (!p) { 
+                p = { name, vaultScore: 0, streak: 0, progress: { informatica: { played: 0, score: 0 }, calculos: { played: 0, score: 0 }, palabras: { played: 0, score: 0 }, general: { played: 0, score: 0 } } }; 
+                localDB.players.push(p);
+                await window.saveCloudData(p);
+            }
             localDB.currentPlayerName = name; document.getElementById('player-input').value = ''; window.navToModules();
         };
+        
         window.saveInputPlayer = () => { let n = document.getElementById('player-input').value.trim(); if(n) window.selectPlayer(n); };
 
         window.renderPlayerList = () => { document.getElementById('player-list-container').innerHTML = localDB.players.map(p => `<div class="player-item" onclick="window.selectPlayer('${p.name}')"><span class="player-name">${p.name}</span><span style="color:var(--color-success); font-weight:bold;">${p.vaultScore.toLocaleString()} GB</span></div>`).join(''); };
@@ -473,7 +547,7 @@
             
             let shuffledPrizes = shuffleFisherYates([...PRIZES_POOL]); 
             let fullPool = shuffleFisherYates([...(DB_MODULES[mod] || DB_MODULES['informatica'])]);
-            let questionsToUse = fullPool.slice(0, state.totalCards); // Toma 20 sin repetir
+            let questionsToUse = fullPool.slice(0, state.totalCards);
 
             state.boardData = []; 
             for(let i = 0; i < state.totalCards; i++) { state.boardData.push({ id: i, prize: shuffledPrizes[i], qData: questionsToUse[i], status: i < state.cardsPlayed ? 'won' : 'hidden' }); }
@@ -495,7 +569,6 @@
             setTimeout(() => {
                 document.getElementById('modal-prize').textContent = cd.prize.toLocaleString() + ' GB'; document.getElementById('modal-question').textContent = cd.qData.q;
                 
-                // MEZCLA DE OPCIONES FISHER-YATES
                 let opts = shuffleFisherYates([cd.qData.c, ...cd.qData.d]);
                 document.getElementById('modal-options').innerHTML = '';
                 opts.forEach((opt, i) => { 
@@ -537,7 +610,7 @@
             });
         };
 
-        // HACKEO / PVP (1 PREGUNTA MUERTE SÚBITA Y RACHAS)
+        // HACKEO / PVP (1 PREGUNTA MUERTE SÚBITA Y RACHAS CON SUPABASE)
         window.initBotArena = () => {
             const arenaList = document.getElementById('arena-list'); arenaList.innerHTML = '';
             let targets = localDB.players.filter(p => p.name !== localDB.currentPlayerName);
@@ -597,13 +670,31 @@
                         window.saveCloudData();
                     } else {
                         mdr.querySelector('#mdr-icon').textContent = "🚀"; mdr.querySelector('#mdr-title').textContent = "ATAQUE ENVIADO"; mdr.querySelector('#mdr-title').style.color = "#00f0ff"; mdr.querySelector('#mdr-msg').textContent = `Esperando defensa de ${targetName}...`;
-                        if (isOnline) { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attacks', targetName), { attacker: p.name, time: 10 - state.duelTimeLeft, qData: qData }); } catch(e){} }
+                        
+                        // ENVÍO DE ATAQUE A SUPABASE
+                        if (isOnline) { 
+                            try { 
+                                const attackPayload = {
+                                    challenger_name: p.name,
+                                    target_name: targetName,
+                                    status: 'active',
+                                    q_index: Math.floor(10 - state.duelTimeLeft), // Usamos q_index para pasar el tiempo restante
+                                    final_topic: JSON.stringify(qData) // Pasamos la pregunta en formato texto
+                                };
+                                await supabase.from('millo_challenges').insert([attackPayload]);
+                            } catch(e){ console.error("Error al atacar:", e); } 
+                        }
                     }
                 }
             }, 1000);
         };
 
-        window.triggerDefense = (attackData) => {
+        window.triggerDefense = (challenge) => {
+            let qData;
+            try { qData = typeof challenge.final_topic === 'string' ? JSON.parse(challenge.final_topic) : challenge.final_topic; } catch(e) { return; }
+            let timeLimit = challenge.q_index || 10;
+            let attackData = { id: challenge.id, attacker: challenge.challenger_name, time: timeLimit, qData: qData };
+
             document.getElementById('hack-flash').classList.add('active');
             document.querySelectorAll('.screen').forEach(sc => sc.classList.add('hidden')); document.getElementById('screen-duel').classList.remove('hidden'); document.body.className = 'theme-duel';
             document.getElementById('duel-p1-name').textContent = getActivePlayer().name; document.getElementById('duel-p2-name').textContent = "HACKER: " + attackData.attacker;
@@ -624,7 +715,8 @@
         window.resolveDefense = async (btn, isCorrect, attackData, isTimeout = false) => {
             clearInterval(state.duelTimer); document.getElementById('hack-flash').classList.remove('active'); document.getElementById('duel-options').querySelectorAll('.option-btn').forEach(b => b.disabled = true);
             let p = getActivePlayer(); const mdr = document.getElementById('modal-duel-result');
-            if (isOnline) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attacks', p.name)); } catch(e){} }
+            
+            if (isOnline && attackData.id) { try { await supabase.from('millo_challenges').delete().eq('id', attackData.id); } catch(e){} }
 
             setTimeout(async () => {
                 mdr.classList.add('active'); let attacker = localDB.players.find(pl => pl.name === attackData.attacker);
