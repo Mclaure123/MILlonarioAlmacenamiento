@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SISTEMA MILLONARIO v16.11 (HUD ELÁSTICO & ARENA TOTAL)</title>
+    <title>SISTEMA MILLONARIO v16.5 (HUD TERMINAL & 1TB ECONOMY)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
@@ -29,7 +29,22 @@
             background-color: var(--color-bg); color: var(--color-text); font-family: var(--font-modern); position: relative;
             background-image: radial-gradient(circle at 50% 50%, var(--theme-glow-dim) 0%, transparent 60%), linear-gradient(var(--theme-glow-dim) 1px, transparent 1px), linear-gradient(90deg, var(--theme-glow-dim) 1px, transparent 1px);
             background-size: 100% 100%, 40px 40px, 40px 40px; transition: background-image 0.5s ease;
+            padding-bottom: 3.5vh; /* Espacio para el HUD */
         }
+
+        /* Novedad: HUD Inferior de 1 Línea */
+        #system-hud {
+            position: fixed; bottom: 0; left: 0; width: 100vw; height: 3.5vh;
+            background: rgba(0, 0, 0, 0.9); border-top: 2px solid var(--theme-primary);
+            color: #fff; display: flex; align-items: center; padding: 0 1vw; gap: 1vw;
+            font-family: var(--font-retro); font-size: clamp(1rem, 2vh, 1.2rem);
+            z-index: 100000; transition: border-color 0.5s;
+        }
+        .hud-normal { color: var(--theme-primary); }
+        .hud-error { color: var(--color-error); text-shadow: 0 0 10px var(--color-error); }
+        .hud-sync { color: var(--color-gold); }
+        .hud-success { color: var(--color-success); }
+        #hud-blinker { animation: scanline 1s infinite alternate; font-weight: bold; }
 
         #network-status {
             position: fixed; top: 1.5vh; right: 1.5vw; z-index: 10000;
@@ -37,19 +52,12 @@
             display: flex; padding: 2px; gap: 2px;
             transition: all 0.3s; background: rgba(0,0,0,0.8); cursor: help;
         }
-        #network-status::after {
-            content: ''; position: absolute; right: -5px; top: 4px;
-            width: 3px; height: 10px; border-radius: 0 2px 2px 0;
-            background: currentColor; transition: all 0.3s;
-        }
+        #network-status::after { content: ''; position: absolute; right: -5px; top: 4px; width: 3px; height: 10px; border-radius: 0 2px 2px 0; background: currentColor; transition: all 0.3s; }
         .net-segment { flex: 1; border-radius: 1px; transition: all 0.3s; background: transparent; }
-        
         .status-online { border-color: var(--color-success); color: var(--color-success); box-shadow: 0 0 10px rgba(57,255,20,0.5); }
         .status-online .net-segment { background: var(--color-success); box-shadow: 0 0 5px var(--color-success); }
-        
         .status-offline { border-color: var(--color-error); color: var(--color-error); box-shadow: 0 0 10px rgba(255,0,60,0.5); }
         .status-offline .net-segment:nth-child(1) { background: var(--color-error); box-shadow: 0 0 5px var(--color-error); }
-        
         .status-syncing { border-color: var(--color-gold); color: var(--color-gold); box-shadow: 0 0 10px rgba(255,170,0,0.5); }
         .status-syncing .net-segment { background: var(--color-gold); animation: pulse-correct 1s infinite; }
 
@@ -60,7 +68,7 @@
         body.shake-active { animation: screenShake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
 
         #app-container { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; }
-        .screen { width: 100%; height: 100%; display: flex; flex-direction: column; position: absolute; top: 0; left: 0; transition: opacity 0.5s ease; background: var(--color-bg); z-index: 10; overflow: hidden; }
+        .screen { width: 100%; height: 100%; display: flex; flex-direction: column; position: absolute; top: 0; left: 0; transition: opacity 0.5s ease; background: var(--color-bg); z-index: 10; overflow: hidden; padding-bottom: 3.5vh;}
         .hidden { opacity: 0; pointer-events: none; z-index: -1; }
 
         .menu-screen { justify-content: center; align-items: center; text-align: center; background: radial-gradient(circle at center, var(--color-panel) 0%, #02050a 100%); padding: 2vh 2vw;}
@@ -72,7 +80,7 @@
         .btn-action:active { transform: scale(0.95) translateY(4px); } 
         .btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: grayscale(1); }
 
-        .player-container { display: flex; width: 100%; max-width: 1000px; height: auto; flex-grow: 1; max-height: 75vh; gap: 2vw; justify-content: center; align-items: stretch; overflow: hidden; margin-bottom: 2vh;}
+        .player-container { display: flex; width: 100%; max-width: 1000px; height: auto; flex-grow: 1; max-height: 70vh; gap: 2vw; justify-content: center; align-items: stretch; overflow: hidden; margin-bottom: 2vh;}
         .keyboard-panel { flex: 1.5; background: var(--theme-glow-dim); border: 1px solid var(--theme-primary); border-radius: 10px; padding: 2vh 2vw; display: flex; flex-direction: column; justify-content: space-between; align-items: center; box-shadow: 0 0 20px var(--theme-glow-dim); transition: all 0.5s; overflow-y: auto;}
         #player-input { width: 100%; background: #000; border: 2px solid var(--theme-primary); color: var(--theme-primary); font-size: clamp(1.5rem, 4vh, 2.5rem); font-family: var(--font-retro); text-align: center; padding: 1vh; margin-bottom: 1vh; border-radius: 5px; text-transform: uppercase; outline: none; transition: all 0.5s;}
         .keyboard { display: flex; flex-direction: column; gap: 1vh; width: 100%; flex-grow: 1; justify-content: center;}
@@ -89,7 +97,7 @@
         .player-delete { background: var(--color-error); color: #fff; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1.2rem; transition: transform 0.2s; }
         .player-delete:hover { transform: scale(1.2); box-shadow: 0 0 10px var(--color-error); }
 
-        .modules-layout { display: flex; width: 100%; max-width: 1000px; height: auto; flex-grow: 1; max-height: 75vh; gap: 2vw; align-items: stretch; justify-content: center; margin: 0 auto; overflow: hidden;}
+        .modules-layout { display: flex; width: 100%; max-width: 1000px; height: auto; flex-grow: 1; max-height: 70vh; gap: 2vw; align-items: stretch; justify-content: center; margin: 0 auto; overflow: hidden;}
         .modules-grid { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 1.5vh 1.5vw; height: 100%; overflow: hidden;}
         .module-btn { background: linear-gradient(135deg, var(--color-panel) 0%, #0d1b3e 100%); border: 2px solid #333; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; padding: 1vh;}
         
@@ -111,8 +119,9 @@
         .vault-title { color: #fff; font-family: var(--font-modern); font-weight: bold; font-size: clamp(0.9rem, 1.5vh, 1.1rem); text-transform: uppercase; text-align: center; letter-spacing: 2px; }
         .vault-amount { color: var(--color-success); font-family: var(--font-retro); font-size: clamp(1.8rem, 3.5vh, 2.5rem); font-weight: bold; text-shadow: 0 0 15px rgba(57, 255, 20, 0.5); margin-top: 1vh; text-align: center; line-height: 1;}
         
-        .btn-arena { background: #ff003c; border-color: #ff003c; box-shadow: 0 0 15px rgba(255,0,60,0.5); width: 100%; font-size: 1.2rem; padding: 1.5vh;}
+        .btn-arena { background: #ff003c; border-color: #ff003c; box-shadow: 0 0 15px rgba(255,0,60,0.5); width: 100%; font-size: 1.2rem; padding: 1.5vh; margin-top: 0;}
         .btn-arena:hover { background: #ff3366; box-shadow: 0 0 25px rgba(255,0,60,0.8); }
+        .btn-arena:disabled { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; box-shadow: none; }
 
         #arena-list { display: flex; flex-direction: column; gap: 1.5vh; width: 100%; max-width: 800px; height: 50vh; overflow-y: auto; background: rgba(0,0,0,0.5); border: 2px solid var(--theme-primary); border-radius: 10px; padding: 2vh;}
         .online-player { display: flex; justify-content: space-between; align-items: center; background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.3); padding: 2vh 2vw; border-radius: 8px; transition: all 0.2s; }
@@ -133,7 +142,6 @@
         .duel-timer { font-family: var(--font-retro); font-size: clamp(3rem, 8vh, 6rem); color: var(--color-gold); text-shadow: 0 0 30px #ffaa00; margin: 1vh 0; line-height: 1;}
         .duel-question-container { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; height: auto; flex-grow: 1; overflow-y: auto; padding: 2vh 4vw;}
         
-        /* FIX: Alineación estricta y simétrica de las respuestas */
         .question-text { font-size: clamp(1.2rem, 3vh, 2.2rem); font-weight: 700; margin: 4vh auto; line-height: 1.3; color: #fff; text-align: center; width: 100%; max-width: 900px;}
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 2vh 2vw; width: 100%; max-width: 900px; margin: 0 auto; align-content: center; }
         
@@ -162,15 +170,25 @@
         .card:nth-child(2n) { animation-delay: 0.5s; } .card:nth-child(3n) { animation-delay: 1s; } .card:nth-child(5n) { animation-delay: 1.5s; }
         .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; }
         .card.revealed .card-inner { transform: rotateY(180deg); }
+        
         .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 8px; border: 2px solid; box-shadow: 0 4px 8px rgba(0,0,0,0.5); overflow: hidden; }
         .card-front { background: linear-gradient(135deg, var(--color-panel) 0%, #0d1b3e 100%); border-color: var(--theme-glow); color: var(--theme-primary); transition: all 0.3s; }
         .card-front::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(0deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 10px 10px; z-index: 1; pointer-events: none; }
         .card-front:hover { background: linear-gradient(135deg, #0d1b3e 0%, #162a5e 100%); border-color: var(--theme-primary); transform: translateY(2px) scale(0.98); box-shadow: inset 0 0 20px var(--theme-glow); }
-        .card-number { font-size: clamp(3rem, 8vh, 6rem); font-family: var(--font-retro); font-weight: bold; z-index: 2; text-shadow: 0 0 20px var(--theme-glow); transition: text-shadow 0.5s;}
+        
+        /* Modificación: El valor de la tarjeta se ve enfrente */
+        .card-prize-front { font-size: clamp(1.5rem, 4vh, 3rem); font-family: var(--font-retro); font-weight: bold; z-index: 2; text-shadow: 0 0 10px var(--theme-glow); transition: text-shadow 0.5s; color: #fff;}
+        .card-icon-front { font-size: clamp(2rem, 5vh, 4rem); margin-bottom: 5px; z-index: 2; color: var(--theme-primary);}
         
         .card.state-won .card-front { background: rgba(57, 255, 20, 0.1); border-color: var(--color-success); color: var(--color-success); opacity: 0.5; pointer-events: none;}
-        .card.state-won .card-number { text-shadow: 0 0 10px var(--color-success); }
+        .card.state-won .card-prize-front { text-shadow: 0 0 10px var(--color-success); color: var(--color-success); text-decoration: line-through;}
+        .card.state-won .card-icon-front { color: var(--color-success); }
         .card.state-won { animation: none; transform: scale(0.95); cursor: default;}
+
+        .card.state-lost-permanent .card-front { background: rgba(255, 0, 60, 0.1); border-color: var(--color-error); color: var(--color-error); opacity: 0.5; pointer-events: none;}
+        .card.state-lost-permanent .card-prize-front { text-shadow: 0 0 10px var(--color-error); color: var(--color-error); text-decoration: line-through;}
+        .card.state-lost-permanent .card-icon-front { color: var(--color-error); }
+        .card.state-lost-permanent { animation: none; transform: scale(0.95); cursor: default;}
 
         .card-back { background: #050a15; transform: rotateY(180deg); font-family: var(--font-retro); }
         .card.state-lost .card-back { background: radial-gradient(circle, #3e0a15 0%, #150307 100%); border-color: var(--color-error); color: var(--color-error); }
@@ -201,18 +219,6 @@
         .floating-feedback.error { color: var(--color-error); text-shadow: 0 0 30px var(--color-error), 0 5px 20px rgba(0,0,0,1); }
         .floating-feedback.denied { font-family: var(--font-retro); font-size: 4rem; color: #fff; text-shadow: 0 0 15px #f00, 0 0 40px #f00; animation: scanline 0.5s infinite alternate; }
 
-        @keyframes heavy-shake { 0% { transform: translate(10px, 10px) rotate(2deg); } 25% { transform: translate(-10px, -10px) rotate(-2deg); } 50% { transform: translate(15px, -5px) rotate(3deg); } 75% { transform: translate(-15px, 5px) rotate(-3deg); } 100% { transform: translate(0px, 0px) rotate(0deg); } }
-        @keyframes strobe-red { 0%, 49% { background-color: rgba(180, 0, 0, 0.95); } 50%, 100% { background-color: rgba(20, 0, 0, 0.98); } }
-        
-        #security-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(150, 0, 0, 0.95); z-index: 20000; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 2vh; opacity: 0; pointer-events: none; transition: opacity 0.1s; }
-        #security-overlay.active { opacity: 1; pointer-events: auto; animation: heavy-shake 0.2s infinite alternate, strobe-red 0.15s infinite; }
-        .crt-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; }
-        .sec-title { font-family: var(--font-retro); font-size: clamp(3rem, 8vh, 6rem); color: #fff; text-shadow: 4px 4px 0 #000; letter-spacing: 5px; z-index: 2;}
-        .sec-msg { font-family: var(--font-modern); font-size: clamp(1.2rem, 3vh, 2rem); color: #fff; font-weight: bold; margin-top: 2vh; text-transform: uppercase; max-width: 800px; line-height: 1.4; text-shadow: 2px 2px 0 #000; z-index: 2;}
-        .sec-icon { font-size: 8rem; margin-bottom: 2vh; animation: pulse-correct 0.5s infinite; z-index: 2; text-shadow: 0 0 30px #ff0000;}
-        #btn-sec-ack { display: none; z-index: 3; margin-top: 5vh; border-color: #fff; background: #000; color: #f00; font-family: var(--font-retro); font-size: 2rem;}
-        #btn-sec-ack:hover { background: #f00; color: #fff; }
-
         @keyframes scanline { 0% { transform: translateX(-10%); } 100% { transform: translateX(10%); } }
         @keyframes pulse-correct { 0% { transform: scale(1); } 50% { transform: scale(0.98); } 100% { transform: scale(1); } }
         @keyframes shake-wrong { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
@@ -240,7 +246,7 @@
             .duel-header { height: auto; padding: 1vh 2vw; }
             .duel-name { font-size: 1.5rem; }
             .duel-vs { font-size: 2rem;}
-            .options-grid { grid-template-columns: 1fr; } /* En móviles se apilan para mantener orden */
+            .options-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 500px) {
             #grid-cards { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(5, 1fr); }
@@ -250,20 +256,17 @@
 </head>
 <body class="theme-informatica">
 
+    <div id="system-hud">
+        <span id="hud-blinker">>_</span>
+        <span id="hud-log-text" class="hud-normal">INICIALIZANDO SISTEMA OMNI-VERSAL... OK</span>
+    </div>
+
     <div id="network-status" class="status-offline" title="Estado de Servidor">
         <div class="net-segment"></div>
         <div class="net-segment"></div>
         <div class="net-segment"></div>
     </div>
     <div id="error-flash"></div>
-
-    <div id="security-overlay">
-        <div class="crt-lines"></div>
-        <div class="sec-icon" id="sec-icon-display">🚨</div>
-        <div class="sec-title" id="sec-title-text">SISTEMA PAUSADO</div>
-        <div class="sec-msg" id="sec-msg-text">Pantalla completa o foco perdido.</div>
-        <button class="btn-action" id="btn-sec-ack">RESTAURAR CONEXIÓN</button>
-    </div>
 
     <div id="app-container">
         <div id="screen-welcome" class="screen menu-screen">
@@ -329,6 +332,7 @@
                     </div>
                     <div class="arena-btn-panel">
                         <div class="vault-icon" style="color:var(--color-error); text-shadow: 0 0 15px #f00;">⚔️</div>
+                        <div style="color:var(--color-gold); font-family: var(--font-retro); font-size: 1.2rem; margin-bottom: 0.5vh;">COSTO: 2 GB</div>
                         <button class="btn-action btn-arena" id="btn-goto-arena">BATTLE ARENA</button>
                     </div>
                 </div>
@@ -356,14 +360,14 @@
         <div id="screen-end" class="screen menu-screen hidden">
             <div class="end-trophy" style="font-size: 8rem;">🏆</div>
             <h1 class="title-main" style="font-size: clamp(2rem, 6vh, 4rem);">MÓDULO COMPLETADO</h1>
-            <h2 class="title-sub" style="color: #FFF;" id="end-sync-msg">1 GB Añadido a tu Bóveda. Progreso guardado.</h2>
-            <div class="end-total" id="ui-final-score" style="font-size: 5rem; color: var(--color-success); font-family: var(--font-retro); text-shadow: 0 0 20px rgba(57,255,20,0.5); margin: 2vh 0;">1 GB</div>
+            <h2 class="title-sub" style="color: #FFF;" id="end-sync-msg">Has acumulado una enorme cantidad de datos.</h2>
+            <div class="end-total" id="ui-final-score" style="font-size: 5rem; color: var(--color-success); font-family: var(--font-retro); text-shadow: 0 0 20px rgba(57,255,20,0.5); margin: 2vh 0;">1 TB</div>
             <button class="btn-action" id="btn-restart">Volver al Menú</button>
         </div>
 
         <div id="screen-arena" class="screen menu-screen hidden">
             <h1 class="title-main" style="color:var(--color-error); text-shadow: 0 0 20px rgba(255,0,60,0.5);" id="arena-title-ui">ARENA OMNI-VERSAL</h1>
-            <h2 class="title-sub" id="arena-sub-ui" style="margin-bottom: 2vh;">Operadores conectados. Lanza un desafío.</h2>
+            <h2 class="title-sub" id="arena-sub-ui" style="margin-bottom: 2vh;">Apuesta 2 GB para desafiar a un Operador.</h2>
             <div id="arena-list">
             </div>
             <button class="btn-action" id="btn-exit-arena" style="margin-top: 2vh; font-size: 1rem; padding: 1vh 2vw; background: #333; border-color: #555;">← Volver al Menú</button>
@@ -386,8 +390,8 @@
         <div id="modal-overlay" class="modal-overlay">
             <div id="modal-content" class="modal-content">
                 <div class="modal-header">
-                    <span class="prize-alert">Datos detectados en este sector:</span>
-                    <span class="prize-amount" id="modal-prize">+ 0 BITS</span>
+                    <span class="prize-alert">Intentando extraer paquete de datos:</span>
+                    <span class="prize-amount" id="modal-prize">0 BITS</span>
                 </div>
                 <div class="question-text" id="modal-question">¿Cargando datos...?</div>
                 <div class="options-grid" id="modal-options"></div>
@@ -397,7 +401,7 @@
         <div id="modal-challenge" class="modal-overlay">
             <div class="modal-content" style="max-width: 600px;">
                 <h2 class="title-main" style="color:var(--color-error); font-size:2rem;" id="mc-title">¡DESAFÍO ENTRANTE!</h2>
-                <div class="question-text" id="mc-msg" style="font-size: 1.2rem;">Un operador te ha desafiado.</div>
+                <div class="question-text" id="mc-msg" style="font-size: 1.2rem;">Un operador te ha desafiado. Costo: 2 GB.</div>
                 
                 <div style="margin: 2vh 0; color:var(--theme-primary); font-family: var(--font-retro); font-size: 1.5rem;">VOTA TU TEMA:</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1vh;" id="mc-topics">
@@ -409,7 +413,7 @@
 
                 <div style="display: flex; gap: 1vw; justify-content: center; margin-top: 3vh;">
                     <button class="btn-action" style="background:#333; border-color:#555;" id="btn-mc-cancel">Rechazar</button>
-                    <button class="btn-action" style="background:var(--color-success); border-color:var(--color-success); color:#000;" id="btn-mc-accept" disabled>Aceptar y Luchar</button>
+                    <button class="btn-action" style="background:var(--color-success); border-color:var(--color-success); color:#000;" id="btn-mc-accept" disabled>Pagar 2 GB y Luchar</button>
                 </div>
             </div>
         </div>
@@ -431,29 +435,25 @@
         const SUPABASE_ANON_KEY = "sb_publishable_sNgWni9L5DWroTgEPKhKQw_cST-OXxR"; 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
 
-        const NotificationEngine = {
-            init() {
-                if (!document.getElementById('millo-toaster')) {
-                    const container = document.createElement('div'); container.id = 'millo-toaster';
-                    container.style.cssText = `position: fixed; top: 10vh; right: 2vw; z-index: 99999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;`;
-                    document.body.appendChild(container);
-                }
-            },
-            show(msg, type = 'info') {
-                this.init(); const toast = document.createElement('div');
-                const colors = { success: '#39ff14', error: '#ff003c', info: '#00f0ff', warn: '#ffaa00' };
-                toast.style.cssText = `background: rgba(10, 17, 40, 0.95); border: 1px solid ${colors[type]}; border-left: 5px solid ${colors[type]}; color: #fff; padding: 15px 20px; border-radius: 4px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: bold; box-shadow: 0 5px 20px rgba(0,0,0,0.5); opacity: 0; transform: translateX(50px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);`;
-                toast.innerText = msg; document.getElementById('millo-toaster').appendChild(toast);
-                requestAnimationFrame(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(0)'; });
-                setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(50px)'; setTimeout(() => toast.remove(), 400); }, 5000);
+        // Novedad: Lógica del HUD Inferior
+        const SystemLog = {
+            print: function(msg, type = 'normal') {
+                const logText = document.getElementById('hud-log-text');
+                logText.className = `hud-${type}`;
+                logText.textContent = msg;
             }
         };
 
-        const BITS = 1; const BYTES = 8; const KB = 8192; const MB = 8388608; const GB = 8589934592;
+        const BITS = 1; const BYTES = 8; const KB = 8192; const MB = 8388608; const GB = 8589934592; const TB = GB * 1024;
+        const DUEL_COST = 2 * GB;
 
-        const PRIZES_BITS_PROGRESSION = [
-            1 * BYTES, 1023 * BYTES, 255 * KB, 256 * KB, 512 * KB, 3 * MB, 4 * MB, 8 * MB, 16 * MB, 32 * MB,
-            64 * MB, 128 * MB, 256 * MB, 128 * MB, 128 * MB, 64 * MB, 64 * MB, 64 * MB, 32 * MB, 32 * MB
+        // Distribución matemática exacta para lograr 1 TB en 20 preguntas
+        const BOARD_VALUES_TEMPLATE = [
+            128 * BITS, 512 * BITS, 
+            256 * BYTES, 512 * BYTES, 1024 * BYTES, 
+            256 * KB, 512 * KB, 1024 * KB, 
+            256 * MB, 512 * MB, 1024 * MB, 
+            5 * GB, 10 * GB, 25 * GB, 50 * GB, 100 * GB, 150 * GB, 200 * GB, 233 * GB, 250 * GB
         ];
 
         /* BASE DE DATOS EXTENDIDA A EXACTAMENTE 40 PREGUNTAS POR MÓDULO (160 TOTAL) */
@@ -641,7 +641,33 @@
         let localDB = { players: [], currentPlayerName: null };
         let isOnline = navigator.onLine;
 
-        function formatDataString(bits) { bits = parseInt(bits) || 0; if (bits < BYTES) return `${bits} BITS`; let bytes = Math.floor(bits / BYTES); if (bytes < 1024) return `${bytes} BYTES`; let kb = bytes / 1024; if (kb < 1024) return `${kb % 1 === 0 ? kb : kb.toFixed(1)} KB`; let mb = kb / 1024; if (mb < 1024) return `${mb % 1 === 0 ? mb : mb.toFixed(1)} MB`; let gb = mb / 1024; return `${gb % 1 === 0 ? gb : gb.toFixed(2)} GB`; }
+        // Formateador actualizado con soporte para Terabytes
+        function formatDataString(bits) { 
+            bits = parseInt(bits) || 0; 
+            if (bits < BYTES) return `${bits} BITS`; 
+            let bytes = Math.floor(bits / BYTES); 
+            if (bytes < 1024) return `${bytes} BYTES`; 
+            let kb = bytes / 1024; 
+            if (kb < 1024) return `${kb % 1 === 0 ? kb : kb.toFixed(1)} KB`; 
+            let mb = kb / 1024; 
+            if (mb < 1024) return `${mb % 1 === 0 ? mb : mb.toFixed(1)} MB`; 
+            let gb = mb / 1024; 
+            if (gb < 1024) return `${gb % 1 === 0 ? gb : gb.toFixed(2)} GB`; 
+            let tb = gb / 1024;
+            return `${tb % 1 === 0 ? tb : tb.toFixed(3)} TB`;
+        }
+        
+        function formatPrizeToIcon(bits) {
+            if (bits < BYTES) return "🧲";
+            let bytes = Math.floor(bits / BYTES); 
+            if (bytes < 1024) return "📄";
+            let kb = bytes / 1024; 
+            if (kb < 1024) return "💾";
+            let mb = kb / 1024; 
+            if (mb < 1024) return "💿";
+            return "📦"; // GB o más
+        }
+
         function mulberry32(a) { return function() { var t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; } }
         function hashString(str) { let h = 0; for(let i=0;i<str.length;i++) h = Math.imul(31, h) + str.charCodeAt(i) | 0; return h; }
         function shuffle(arr, randFunc = Math.random) { let array = [...arr]; for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(randFunc() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
@@ -666,31 +692,34 @@
         function getCurrentWave() { return THEME_WAVES[state.currentModule] || 'square'; }
 
         function checkNetworkStatus() {
-            const netUI = document.getElementById('network-status'); const vaultUI = document.getElementById('vault-title-ui'); const arenaUI = document.getElementById('btn-goto-arena');
-            if (isOnline) { netUI.className = 'status-online'; vaultUI.textContent = 'Bóveda en Nube'; arenaUI.textContent = 'BATTLE ARENA'; } 
-            else { netUI.className = 'status-offline'; vaultUI.textContent = 'Memoria Local'; arenaUI.textContent = 'ARENA SIMULADA'; }
+            const netUI = document.getElementById('network-status'); const vaultUI = document.getElementById('vault-title-ui');
+            if (isOnline) { netUI.className = 'status-online'; vaultUI.textContent = 'Bóveda en Nube'; } 
+            else { netUI.className = 'status-offline'; vaultUI.textContent = 'Memoria Local'; SystemLog.print("OPERANDO SIN CONEXIÓN - Progreso guardado localmente.", "error");}
         }
 
-        window.addEventListener('online', () => { isOnline = true; checkNetworkStatus(); if(getActivePlayer()) saveCloudStorage(); });
+        window.addEventListener('online', () => { isOnline = true; checkNetworkStatus(); SystemLog.print("CONEXIÓN RESTAURADA.", "success"); if(getActivePlayer()) saveCloudStorage(); });
         window.addEventListener('offline', () => { isOnline = false; checkNetworkStatus(); });
 
-        function getBaseProgress() { return { played: 0, score: 0, clearedCards: [], answeredIds: [] }; }
+        function getBaseProgress() { 
+            // Generamos la matriz exacta del tablero para que alcance el Terabyte
+            return { played: 0, score: 0, clearedCards: [], failedCards: [], answeredIds: [], board: shuffle([...BOARD_VALUES_TEMPLATE]) }; 
+        }
 
         function loadLocalData() {
-            const saved = localStorage.getItem('millo_profiles_v16');
+            const saved = localStorage.getItem('millo_profiles_v16_5');
             if (saved) { 
                 try { localDB = JSON.parse(saved); 
                     localDB.players.forEach(p => { 
                         if(!p.id) p.id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Math.random().toString(36).substr(2, 9);
                         if(!p.progress) p.progress = { informatica: getBaseProgress(), calculos: getBaseProgress(), palabras: getBaseProgress(), general: getBaseProgress() };
-                        if(typeof p.progress.informatica.answeredIds === 'undefined') { Object.keys(p.progress).forEach(k => p.progress[k] = getBaseProgress()); p.vaultScore = 0; }
+                        if(typeof p.progress.informatica.board === 'undefined') { Object.keys(p.progress).forEach(k => p.progress[k] = getBaseProgress()); p.vaultScore = 0; }
                     });
                     renderPlayerList(); updateUIStats(); 
                 } catch(e){} 
             }
         }
 
-        function saveLocalData() { localStorage.setItem('millo_profiles_v16', JSON.stringify(localDB)); }
+        function saveLocalData() { localStorage.setItem('millo_profiles_v16_5', JSON.stringify(localDB)); }
 
         async function loadCloudStorage() {
             if (!isOnline) return;
@@ -719,7 +748,7 @@
                 let prog_inf = JSON.parse(JSON.stringify(p.progress.informatica)); let prog_cal = JSON.parse(JSON.stringify(p.progress.calculos));
                 let prog_pal = JSON.parse(JSON.stringify(p.progress.palabras)); let prog_gen = JSON.parse(JSON.stringify(p.progress.general));
 
-                NotificationEngine.show(`Sincronizando a ${p.name}...`, 'info');
+                SystemLog.print(`Sincronizando a ${p.name} en la Nube...`, 'sync');
 
                 const { error } = await supabaseClient.from('millo_players').upsert({
                     id: p.id, name: p.name, vault_score: Number(p.vaultScore),
@@ -730,17 +759,14 @@
                 if(error) throw error; 
 
                 netUI.className = 'status-online';
-                NotificationEngine.show(`✅ Progreso de ${p.name} Inmortalizado en la nube`, 'success');
+                SystemLog.print(`Backup seguro. Operador ${p.name} Inmortalizado.`, 'success');
             } catch(e) { 
-                console.error("❌ ERROR RED/DB:", e); 
                 netUI.className = 'status-offline';
                 let msg = e.message || "Error desconocido";
                 if (msg === "CORS_FILE_PROTOCOL" || msg.includes("fetch")) {
-                    NotificationEngine.show("❌ BLOQUEO CORS: Estás en file:// o sin internet. Usa Live Server.", "error");
-                } else if (msg.includes("row-level security") || msg.includes("RLS")) {
-                    NotificationEngine.show("❌ BLOQUEO RLS: Tu tabla en Supabase rechaza escrituras. Revisa tus Policies.", "error");
+                    SystemLog.print("BLOQUEO CORS: Abre en Live Server para usar Supabase.", "error");
                 } else {
-                    NotificationEngine.show(`❌ ERROR DB: ${msg}`, "error");
+                    SystemLog.print(`Fallo de Enlace: ${msg}`, "error");
                 }
             }
         }
@@ -749,7 +775,7 @@
 
         window.onload = async () => { 
             if (window.location.protocol === 'file:') {
-                NotificationEngine.show("⚠️ ALERTA CORS: Estás usando file://. Supabase bloqueará el acceso. Abre con Live Server.", "warn");
+                SystemLog.print("ALERTA CORS: Usa Live Server. Supabase está bloqueado por File://", "error");
             }
             loadLocalData(); checkNetworkStatus(); await loadCloudStorage(); if(isOnline) setupRealtimeListeners(); 
         };
@@ -778,6 +804,15 @@
 
         function updateUIStats() {
             let p = getActivePlayer(); if(!p) return; document.getElementById('welcome-player-text').textContent = `Operador activo: ${p.name}`; document.getElementById('ui-vault-total').textContent = formatDataString(p.vaultScore);
+            
+            // Botón de arena bloqueado si no hay fondos
+            const btnArena = document.getElementById('btn-goto-arena');
+            if (p.vaultScore >= DUEL_COST) {
+                btnArena.disabled = false; btnArena.textContent = "BATTLE ARENA";
+            } else {
+                btnArena.disabled = true; btnArena.textContent = "FONDOS INSUFICIENTES";
+            }
+
             document.querySelectorAll('.module-btn').forEach(btn => {
                 let mod = btn.getAttribute('data-module'); let prog = p.progress[mod]; let progEl = document.getElementById(`prog-${mod}`); progEl.innerHTML = ''; let isCompleted = prog.played >= 20;
                 if(isCompleted) { progEl.classList.add('completed-battery'); progEl.style.borderColor = "var(--color-success)"; } else { progEl.classList.remove('completed-battery'); progEl.style.borderColor = ""; }
@@ -795,25 +830,41 @@
             if(prog.played >= 20) { prog = getBaseProgress(); p.progress[moduleName] = prog; saveCloudStorage(); }
             state.cardsPlayed = prog.played; state.currentScoreBits = prog.score;
             document.getElementById('ui-score').textContent = formatDataString(state.currentScoreBits); document.getElementById('ui-cards-left').textContent = `${state.cardsPlayed}/20`;
+            SystemLog.print(`MÓDULO SELECCIONADO: ${moduleName.toUpperCase()} - Extrae el Terabyte.`, "normal");
             renderBoardHTML(); nav('screen-game');
         }
 
         function renderBoardHTML() {
-            let p = getActivePlayer(); let cleared = p.progress[state.currentModule].clearedCards; const grid = document.getElementById('grid-cards'); grid.innerHTML = '';
+            let p = getActivePlayer(); let prog = p.progress[state.currentModule]; let cleared = prog.clearedCards; let failed = prog.failedCards || []; const grid = document.getElementById('grid-cards'); grid.innerHTML = '';
+            
             for(let i = 0; i < 20; i++) {
-                let cardEl = document.createElement('div'); cardEl.className = 'card'; cardEl.id = `card-slot-${i}`; let isCleared = cleared.includes(i);
-                if (isCleared) { cardEl.classList.add('state-won'); cardEl.innerHTML = `<div class="card-inner"><div class="card-front"><span class="card-number">✔️</span></div></div>`; }
-                else { cardEl.innerHTML = `<div class="card-inner"><div class="card-front"><span class="card-number">${i + 1}</span></div><div class="card-back"><span class="card-prize">...</span><div class="card-status-icon">[_]</div></div></div>`; cardEl.onclick = () => handleCardClick(i); }
+                let cardEl = document.createElement('div'); cardEl.className = 'card'; cardEl.id = `card-slot-${i}`; 
+                let isCleared = cleared.includes(i); let isFailed = failed.includes(i);
+                let cardBitsValue = prog.board[i];
+                let formattedValue = formatDataString(cardBitsValue);
+                let prizeIcon = formatPrizeToIcon(cardBitsValue);
+
+                if (isCleared) { 
+                    cardEl.classList.add('state-won'); 
+                    cardEl.innerHTML = `<div class="card-inner"><div class="card-front"><div class="card-icon-front">✔️</div><span class="card-prize-front">${formattedValue}</span></div></div>`; 
+                } else if (isFailed) {
+                    cardEl.classList.add('state-lost-permanent'); 
+                    cardEl.innerHTML = `<div class="card-inner"><div class="card-front"><div class="card-icon-front">❌</div><span class="card-prize-front">${formattedValue}</span></div></div>`; 
+                } else { 
+                    cardEl.innerHTML = `<div class="card-inner"><div class="card-front"><div class="card-icon-front">${prizeIcon}</div><span class="card-prize-front">${formattedValue}</span></div><div class="card-back"><span class="card-prize">...</span><div class="card-status-icon">[_]</div></div></div>`; 
+                    cardEl.onclick = () => handleCardClick(i, cardBitsValue); 
+                }
                 grid.appendChild(cardEl);
             }
         }
 
-        function handleCardClick(slotIndex) {
+        function handleCardClick(slotIndex, cardBitsValue) {
             if (state.isAnimating) return; state.isAnimating = true; let cardEl = document.getElementById(`card-slot-${slotIndex}`); cardEl.classList.add('revealed'); AudioEngine.sndReveal();
             let p = getActivePlayer(); let prog = p.progress[state.currentModule]; let allQ = DB_MODULES[state.currentModule];
             let availableQ = allQ.filter(q => !prog.answeredIds.includes(q.id)); if(availableQ.length === 0) availableQ = allQ; 
-            let selectedQ = availableQ[Math.floor(Math.random() * availableQ.length)]; let stepPrizeBits = PRIZES_BITS_PROGRESSION[state.cardsPlayed];
-            setTimeout(() => { openQuestionModal(slotIndex, selectedQ, stepPrizeBits); }, 1000);
+            let selectedQ = availableQ[Math.floor(Math.random() * availableQ.length)]; 
+            
+            setTimeout(() => { openQuestionModal(slotIndex, selectedQ, cardBitsValue); }, 1000);
         }
 
         function openQuestionModal(slotIndex, qData, prizeBits) {
@@ -828,32 +879,38 @@
             let allBtns = document.getElementById('modal-options').querySelectorAll('.option-btn'); allBtns.forEach(b => b.disabled = true);
             let cardEl = document.getElementById(`card-slot-${slotIndex}`); let iconContainer = cardEl.querySelector('.card-status-icon'); let prizeContainer = cardEl.querySelector('.card-prize'); let p = getActivePlayer(); let prog = p.progress[state.currentModule];
 
+            prog.played++; 
+            prog.answeredIds.push(qData.id);
+
             if (isCorrect) {
-                clickedBtn.classList.add('selected-correct'); AudioEngine.sndCorrect(); state.currentScoreBits += prizeBits; p.vaultScore += prizeBits; prog.score = state.currentScoreBits; prog.played++; prog.clearedCards.push(slotIndex); prog.answeredIds.push(qData.id);
+                clickedBtn.classList.add('selected-correct'); AudioEngine.sndCorrect(); state.currentScoreBits += prizeBits; p.vaultScore += prizeBits; prog.score = state.currentScoreBits; prog.clearedCards.push(slotIndex);
                 cardEl.classList.add('state-won'); prizeContainer.textContent = formatDataString(prizeBits); iconContainer.innerHTML = '✔️'; spawnFloatingText(SUCCESS_WORDS[Math.floor(Math.random() * SUCCESS_WORDS.length)], 'success'); setTimeout(() => spawnParticles(document.body, 'success'), 200);
+                SystemLog.print(`EXTRACCIÓN EXITOSA: +${formatDataString(prizeBits)} integrados a la bóveda.`, "success");
             } else {
                 clickedBtn.classList.add('selected-wrong'); AudioEngine.sndError(); allBtns.forEach(b => { if (b.textContent === qData.c) { b.classList.add('reveal-correct'); } });
-                cardEl.classList.add('state-lost'); prizeContainer.textContent = "DENEGADO"; iconContainer.innerHTML = '❌'; document.body.classList.add('shake-active'); document.getElementById('error-flash').classList.add('active');
-                setTimeout(() => { document.body.classList.remove('shake-active'); document.getElementById('error-flash').classList.remove('active'); cardEl.classList.remove('revealed', 'state-lost'); }, 2000);
+                if(!prog.failedCards) prog.failedCards = []; prog.failedCards.push(slotIndex);
+                cardEl.classList.add('state-lost-permanent'); prizeContainer.textContent = "DENEGADO"; iconContainer.innerHTML = '❌'; document.body.classList.add('shake-active'); document.getElementById('error-flash').classList.add('active');
+                setTimeout(() => { document.body.classList.remove('shake-active'); document.getElementById('error-flash').classList.remove('active'); cardEl.classList.remove('revealed'); }, 2000);
                 spawnFloatingText(ERROR_WORDS[Math.floor(Math.random() * ERROR_WORDS.length)], 'error'); setTimeout(() => spawnParticles(document.body, 'error'), 200);
+                SystemLog.print(`ERROR. Paquete de ${formatDataString(prizeBits)} corrupto y bloqueado.`, "error");
             }
             saveCloudStorage(); state.cardsPlayed = prog.played; document.getElementById('ui-score').textContent = formatDataString(state.currentScoreBits); document.getElementById('ui-cards-left').textContent = `${state.cardsPlayed}/20`;
-            setTimeout(() => { document.getElementById('modal-overlay').classList.remove('active'); state.isAnimating = false; if(isCorrect) renderBoardHTML(); if (state.cardsPlayed >= 20) { AudioEngine.sndWinGame(); document.getElementById('ui-final-score').textContent = formatDataString(state.currentScoreBits); nav('screen-end'); spawnParticles(document.body, 'success'); } }, 2500); 
+            setTimeout(() => { document.getElementById('modal-overlay').classList.remove('active'); state.isAnimating = false; if(isCorrect || !isCorrect) renderBoardHTML(); if (state.cardsPlayed >= 20) { AudioEngine.sndWinGame(); document.getElementById('ui-final-score').textContent = formatDataString(state.currentScoreBits); nav('screen-end'); spawnParticles(document.body, 'success'); } }, 2500); 
         }
 
-        const ARENA_PRIZE_BITS = 500 * MB; 
+        const ARENA_PRIZE_WIN = 10 * GB; 
         
         const IA_BOTS = [ 
-            { id: 'bot_novato', name: 'Bot_Alpha_99', vaultScore: 8*MB, acc: 0.50, minT: 8, maxT: 12, rwd: 100*MB }, 
-            { id: 'bot_avanzado', name: 'Auto_Hacker_V2', vaultScore: 100*MB, acc: 0.70, minT: 6, maxT: 9, rwd: 250*MB }, 
-            { id: 'bot_experto', name: 'Sistema_Omega', vaultScore: 1*GB, acc: 0.85, minT: 4, maxT: 6, rwd: 500*MB }, 
-            { id: 'bot_elite', name: 'Ghost_Protocol', vaultScore: 5*GB, acc: 0.95, minT: 2, maxT: 4, rwd: 1*GB } 
+            { id: 'bot_novato', name: 'Bot_Alpha_99', vaultScore: 8*GB, acc: 0.50, minT: 8, maxT: 12, rwd: ARENA_PRIZE_WIN }, 
+            { id: 'bot_avanzado', name: 'Auto_Hacker_V2', vaultScore: 100*GB, acc: 0.70, minT: 6, maxT: 9, rwd: ARENA_PRIZE_WIN }, 
+            { id: 'bot_experto', name: 'Sistema_Omega', vaultScore: 1*TB, acc: 0.85, minT: 4, maxT: 6, rwd: ARENA_PRIZE_WIN }, 
+            { id: 'bot_elite', name: 'Ghost_Protocol', vaultScore: 5*TB, acc: 0.95, minT: 2, maxT: 4, rwd: ARENA_PRIZE_WIN } 
         ];
 
         function initArena() {
             AudioEngine.resume(); AudioEngine.sndClick();
-            if(isOnline) { document.getElementById('arena-title-ui').textContent = "ARENA OMNI-VERSAL (ONLINE)"; document.getElementById('arena-sub-ui').textContent = "Buscando oponentes reales y bots en la red..."; saveCloudStorage(); fetchArenaPlayers(); } 
-            else { document.getElementById('arena-title-ui').textContent = "ARENA DE SIMULACIÓN"; document.getElementById('arena-sub-ui').textContent = "Entrenamiento Aislado contra Inteligencia Artificial."; renderHybridArenaList([]); }
+            if(isOnline) { document.getElementById('arena-title-ui').textContent = "ARENA OMNI-VERSAL (ONLINE)"; SystemLog.print("Buscando oponentes en la red...", "sync"); saveCloudStorage(); fetchArenaPlayers(); } 
+            else { document.getElementById('arena-title-ui').textContent = "ARENA DE SIMULACIÓN"; SystemLog.print("Entrenamiento Aislado contra Inteligencia Artificial.", "normal"); renderHybridArenaList([]); }
             nav('screen-arena');
         }
 
@@ -867,11 +924,7 @@
                     if(!document.getElementById('screen-arena').classList.contains('hidden')) renderHybridArenaList(state.onlinePlayers); 
                 }
             } catch(e) { 
-                console.error("Error al cargar arena:", e);
-                let msg = e.message || "";
-                if (msg.includes("row-level security") || msg.includes("RLS")) {
-                    NotificationEngine.show("⚠️ LISTA VACÍA: No tienes permiso SELECT (RLS) en Supabase.", "warn");
-                }
+                SystemLog.print("Error leyendo base de datos de arena.", "error");
                 renderHybridArenaList([]); 
             }
         }
@@ -882,8 +935,12 @@
 
             mixedArray.forEach(p => {
                 let isBot = p.acc !== undefined; let div = document.createElement('div'); div.className = isBot ? 'online-player is-bot' : 'online-player';
-                div.innerHTML = `<div class="online-info"><span class="online-name">${isBot ? '🤖 ' : '👤 '}${p.name}</span><span class="online-gb">${isBot ? 'Recompensa IA: ' : 'Fondos: '}${formatDataString(isBot ? p.rwd : p.vault_score)}</span></div><button class="btn-challenge" data-id="${p.id}" data-name="${p.name}">Atacar</button>`;
-                div.querySelector('button').addEventListener('click', (e) => { if(isBot) startBotDuel(p); else sendCloudChallenge(p.id, p.name); }); list.appendChild(div);
+                div.innerHTML = `<div class="online-info"><span class="online-name">${isBot ? '🤖 ' : '👤 '}${p.name}</span><span class="online-gb">${isBot ? 'Premio al ganar: ' : 'Fondos: '}${formatDataString(isBot ? p.rwd : p.vault_score)}</span></div><button class="btn-challenge" data-id="${p.id}" data-name="${p.name}">Apostar 2 GB y Atacar</button>`;
+                div.querySelector('button').addEventListener('click', (e) => { 
+                    let myPlayer = getActivePlayer();
+                    if(myPlayer.vaultScore < DUEL_COST) { AudioEngine.sndError(); SystemLog.print("FONDOS INSUFICIENTES. No puedes cubrir la apuesta.", "error"); return; }
+                    if(isBot) startBotDuel(p); else sendCloudChallenge(p.id, p.name); 
+                }); list.appendChild(div);
             });
         }
 
@@ -900,9 +957,9 @@
 
         let selectedDuelTopic = null; document.querySelectorAll('.duel-topic-btn').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.duel-topic-btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); selectedDuelTopic = btn.dataset.topic; document.getElementById('btn-mc-accept').disabled = false; }); });
 
-        async function sendCloudChallenge(targetId, targetName) { AudioEngine.sndClick(); let p = getActivePlayer(); try { await supabaseClient.from('millo_challenges').insert({ challenger_id: p.id, challenger_name: p.name, target_id: targetId, target_name: targetName, topic1: 'informatica', status: 'pending' }); spawnFloatingText("HACK ENVIADO", "success"); } catch(e) { spawnFloatingText("ERROR", "error"); } }
+        async function sendCloudChallenge(targetId, targetName) { AudioEngine.sndClick(); let p = getActivePlayer(); try { await supabaseClient.from('millo_challenges').insert({ challenger_id: p.id, challenger_name: p.name, target_id: targetId, target_name: targetName, topic1: 'informatica', status: 'pending' }); spawnFloatingText("HACK ENVIADO", "success"); SystemLog.print("Desafío lanzado. Esperando respuesta del operador...", "sync"); } catch(e) { SystemLog.print("Error al enviar desafío.", "error"); } }
 
-        function showIncomingChallenge(data) { AudioEngine.sndAlarm(); document.getElementById('mc-msg').textContent = `El operador ${data.challenger_name} te ataca.`; selectedDuelTopic = null; document.querySelectorAll('.duel-topic-btn').forEach(b => b.classList.remove('selected')); document.getElementById('btn-mc-accept').disabled = true; state.activeChallengeId = data.id; const mcModal = document.getElementById('modal-challenge'); mcModal.classList.add('active'); document.getElementById('btn-mc-cancel').onclick = async () => { AudioEngine.sndClick(); mcModal.classList.remove('active'); await supabaseClient.from('millo_challenges').delete().eq('id', data.id); }; document.getElementById('btn-mc-accept').onclick = async () => { AudioEngine.sndClick(); mcModal.classList.remove('active'); const finalTopic = [data.topic1, selectedDuelTopic][Math.floor(Math.random() * 2)]; await supabaseClient.from('millo_challenges').update({ final_topic: finalTopic, status: 'active' }).eq('id', data.id); }; }
+        function showIncomingChallenge(data) { AudioEngine.sndAlarm(); document.getElementById('mc-msg').textContent = `El operador ${data.challenger_name} te ataca. Costo: 2 GB.`; selectedDuelTopic = null; document.querySelectorAll('.duel-topic-btn').forEach(b => b.classList.remove('selected')); document.getElementById('btn-mc-accept').disabled = true; state.activeChallengeId = data.id; const mcModal = document.getElementById('modal-challenge'); mcModal.classList.add('active'); document.getElementById('btn-mc-cancel').onclick = async () => { AudioEngine.sndClick(); mcModal.classList.remove('active'); await supabaseClient.from('millo_challenges').delete().eq('id', data.id); }; document.getElementById('btn-mc-accept').onclick = async () => { AudioEngine.sndClick(); mcModal.classList.remove('active'); const finalTopic = [data.topic1, selectedDuelTopic][Math.floor(Math.random() * 2)]; await supabaseClient.from('millo_challenges').update({ final_topic: finalTopic, status: 'active' }).eq('id', data.id); }; }
 
         function startDuelCloud(data) { 
             state.currentModule = 'duel'; document.body.className = 'theme-duel'; state.activeChallengeId = data.id; state.currentChallenge = data; 
@@ -934,14 +991,14 @@
             clearInterval(state.duelTimer); document.getElementById('screen-duel').classList.add('hidden'); document.body.className = ''; 
             let activeId = getActivePlayer().id; let iWon = (data.winner_id === activeId);
 
-            if(iWon) showDuelResult("🏆", "¡VICTORIA!", "var(--color-success)", `Destruiste a tu rival en la red. Ganas ${formatDataString(ARENA_PRIZE_BITS)}`, ARENA_PRIZE_BITS); 
-            else showDuelResult("💀", "SISTEMA CAÍDO", "var(--color-error)", `Tu rival fue letal. Pierdes ${formatDataString(ARENA_PRIZE_BITS)}.`, -ARENA_PRIZE_BITS); 
+            if(iWon) showDuelResult("🏆", "¡VICTORIA!", "var(--color-success)", `Destruiste a tu rival en la red. Ganas ${formatDataString(ARENA_PRIZE_WIN)}`, ARENA_PRIZE_WIN); 
+            else showDuelResult("💀", "SISTEMA CAÍDO", "var(--color-error)", `Tu rival fue letal. Pierdes la apuesta de ${formatDataString(DUEL_COST)}.`, -DUEL_COST); 
             
             state.activeChallengeId = null; state.currentChallenge = null;
         }
 
         function startBotDuel(bot) {
-            if (state.isAnimating) return; state.isAnimating = true; AudioEngine.resume(); AudioEngine.sndClick(); spawnFloatingText("HACKEANDO IA...", "success");
+            if (state.isAnimating) return; state.isAnimating = true; AudioEngine.resume(); AudioEngine.sndClick(); spawnFloatingText("HACKEANDO IA...", "success"); SystemLog.print(`Estableciendo enlace con ${bot.name}...`, "sync");
             setTimeout(() => {
                 state.isAnimating = false; state.currentModule = 'duel'; document.body.className = 'theme-duel';
                 document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById('screen-duel').classList.remove('hidden'); requestFS();
@@ -973,12 +1030,12 @@
                 setTimeout(() => showDuelResult("🏆", "¡IA VENCIDA!", "var(--color-success)", `Destruiste a ${state.currentBot.name}. Ganas ${formatDataString(state.currentBot.rwd)}`, state.currentBot.rwd), 1500);
             } else if (byPlayer && !isCorrect) {
                 if(btn) btn.classList.add('selected-wrong'); AudioEngine.sndError(); document.body.classList.add('shake-active'); setTimeout(()=>document.body.classList.remove('shake-active'), 500);
-                setTimeout(() => showDuelResult("💀", "SISTEMA CAÍDO", "var(--color-error)", `Has fallado miserablemente. Pierdes ${formatDataString(state.currentBot.rwd / 2)}.`, -(state.currentBot.rwd / 2)), 1500);
+                setTimeout(() => showDuelResult("💀", "SISTEMA CAÍDO", "var(--color-error)", `Has fallado miserablemente. Pierdes tu apuesta de ${formatDataString(DUEL_COST)}.`, -DUEL_COST), 1500);
             } else if (!byPlayer && isCorrect) {
                 AudioEngine.sndError(); spawnFloatingText("IA HACKEO PRIMERO", "error"); document.body.classList.add('shake-active'); setTimeout(()=>document.body.classList.remove('shake-active'), 500);
-                setTimeout(() => showDuelResult("🤖", "SISTEMA CAÍDO", "var(--color-error)", `La IA fue más rápida. Pierdes ${formatDataString(state.currentBot.rwd / 2)}.`, -(state.currentBot.rwd / 2)), 1500);
+                setTimeout(() => showDuelResult("🤖", "SISTEMA CAÍDO", "var(--color-error)", `La IA fue más rápida. Pierdes tu apuesta de ${formatDataString(DUEL_COST)}.`, -DUEL_COST), 1500);
             } else {
-                AudioEngine.sndError(); setTimeout(() => showDuelResult("🤝", "EMPATE", "#fff", `Nadie logró hackear el sistema a tiempo.`, 0), 1500);
+                AudioEngine.sndError(); setTimeout(() => showDuelResult("🤝", "EMPATE", "#fff", `Nadie logró hackear el sistema a tiempo. Apuesta devuelta.`, 0), 1500);
             }
         }
 
@@ -987,28 +1044,13 @@
             document.getElementById('modal-duel-result').classList.add('active'); mdrIcon.textContent = icon; mdrTitle.textContent = title; mdrTitle.style.color = color; mdrMsg.textContent = msg;
 
             let p = getActivePlayer();
-            if (prizeBits > 0) { p.vaultScore += prizeBits; AudioEngine.sndWinGame(); spawnParticles(document.body, 'success'); } 
-            else if (prizeBits < 0) { p.vaultScore = Math.max(0, p.vaultScore + prizeBits); document.body.classList.add('shake-active'); setTimeout(() => { document.body.classList.remove('shake-active'); }, 600); }
+            if (prizeBits > 0) { p.vaultScore += prizeBits; AudioEngine.sndWinGame(); spawnParticles(document.body, 'success'); SystemLog.print(`RECOMPENSA DE ARENA: +${formatDataString(prizeBits)}`, "success");} 
+            else if (prizeBits < 0) { p.vaultScore = Math.max(0, p.vaultScore + prizeBits); document.body.classList.add('shake-active'); setTimeout(() => { document.body.classList.remove('shake-active'); }, 600); SystemLog.print(`APUESTA PERDIDA: ${formatDataString(prizeBits)}`, "error");}
             saveCloudStorage();
         }
 
         document.getElementById('btn-mdr-close').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); document.getElementById('modal-duel-result').classList.remove('active'); document.getElementById('screen-duel').classList.add('hidden'); updateUIStats(); nav('screen-arena'); });
         
-        function handleSecurityViolation() { 
-            if (!document.getElementById('screen-game').classList.contains('hidden') || !document.getElementById('screen-duel').classList.contains('hidden')) {
-                document.getElementById('security-overlay').classList.add('active'); AudioEngine.sndAlarm(); 
-                document.getElementById('btn-sec-ack').style.display = 'block'; 
-            }
-        }
-        
-        window.addEventListener('blur', handleSecurityViolation);
-        
-        document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) handleSecurityViolation(); });
-        
-        document.addEventListener('contextmenu', (e) => { e.preventDefault(); AudioEngine.sndError(); spawnFloatingText('ACCESO DENEGADO', 'denied'); document.body.classList.add('shake-active'); setTimeout(() => { document.body.classList.remove('shake-active'); }, 300); });
-        
-        document.getElementById('btn-sec-ack').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); requestFS(); document.getElementById('security-overlay').classList.remove('active'); document.getElementById('btn-sec-ack').style.display='none'; });
-
         function buildVirtualKeyboard() { const rows = [ ['Q','W','E','R','T','Y','U','I','O','P'], ['A','S','D','F','G','H','J','K','L','Ñ'], ['Z','X','C','V','B','N','M','_'] ]; const vk = document.getElementById('virtual-keyboard'); vk.innerHTML = ''; rows.forEach(row => { let rowDiv = document.createElement('div'); rowDiv.className = 'key-row'; row.forEach(key => { let btn = document.createElement('button'); btn.className = 'key'; btn.textContent = key; btn.onclick = () => handleKeyPress(key); rowDiv.appendChild(btn); }); vk.appendChild(rowDiv); }); let specRow = document.createElement('div'); specRow.className = 'key-row'; let btnSpace = document.createElement('button'); btnSpace.className = 'key special'; btnSpace.textContent = 'ESPACIO'; btnSpace.onclick = () => handleKeyPress(' '); let btnDel = document.createElement('button'); btnDel.className = 'key special'; btnDel.textContent = 'BORRAR'; btnDel.onclick = () => handleKeyPress('BACKSPACE'); specRow.appendChild(btnSpace); specRow.appendChild(btnDel); vk.appendChild(specRow); }
         function handleKeyPress(key) { AudioEngine.resume(); AudioEngine.sndKey(); let currentText = document.getElementById('player-input').value; if (key === 'BACKSPACE') { document.getElementById('player-input').value = currentText.slice(0, -1); } else if (currentText.length < 15) { document.getElementById('player-input').value = currentText + key; } }
         document.addEventListener('keydown', (e) => { if (document.getElementById('screen-players').classList.contains('hidden')) return; const key = e.key.toUpperCase(); const validChars = /^[A-ZÑ0-9_ ]$/; if (validChars.test(key) && key.length === 1) { handleKeyPress(key); } else if (e.key === 'Backspace') { handleKeyPress('BACKSPACE'); } else if (e.key === 'Enter') { selectPlayer(document.getElementById('player-input').value.trim()); } });
@@ -1020,7 +1062,11 @@
         document.querySelectorAll('.module-btn').forEach(btn => { btn.addEventListener('click', () => { initGame(btn.getAttribute('data-module')); }); });
         document.getElementById('btn-exit-game').addEventListener('click', () => { if (state.isAnimating) return; AudioEngine.resume(); AudioEngine.sndClick(); exitFS(); document.body.className=''; updateUIStats(); nav('screen-modules'); });
         document.getElementById('btn-restart').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); document.body.className=''; updateUIStats(); nav('screen-modules'); });
-        document.getElementById('btn-goto-arena').addEventListener('click', () => { initArena(); });
+        document.getElementById('btn-goto-arena').addEventListener('click', () => { 
+            let myPlayer = getActivePlayer();
+            if(myPlayer.vaultScore < DUEL_COST) { AudioEngine.sndError(); SystemLog.print("FONDOS INSUFICIENTES. Requiere 2 GB.", "error"); return; }
+            initArena(); 
+        });
         document.getElementById('btn-exit-arena').addEventListener('click', () => { AudioEngine.resume(); AudioEngine.sndClick(); document.body.className=''; nav('screen-modules'); });
 
         buildVirtualKeyboard();
